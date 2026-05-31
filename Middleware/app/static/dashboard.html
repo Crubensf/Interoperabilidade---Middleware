@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interop · Healthcare Gateway</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Geist + Geist Mono (anti-Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-row">
+        <div class="brand-mark" aria-label="Interop Health">
+          <!-- Heart-pulse: cruz médica estilizada com linha de pulso -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12h3.5l2-4 3 8 2-4H21"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">Interop Health</div>
+          <div class="brand-sub">FHIR Gateway · R4</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-group">Visão</div>
+    <nav class="stagger">
+      <button class="nav-btn" style="--i:0" data-tab="visao"><i data-lucide="layout-dashboard" class="icon"></i> Visão geral</button>
+      <button class="nav-btn" style="--i:1" data-tab="audit"><i data-lucide="scroll-text" class="icon"></i> Audit log</button>
+    </nav>
+
+    <div class="sidebar-group">Recursos clínicos</div>
+    <nav class="stagger">
+      <button class="nav-btn" style="--i:0" data-tab="pacientes"><i data-lucide="users" class="icon"></i> Pacientes</button>
+      <button class="nav-btn" style="--i:1" data-tab="profissionais"><i data-lucide="stethoscope" class="icon"></i> Profissionais</button>
+      <button class="nav-btn" style="--i:2" data-tab="agendamentos"><i data-lucide="calendar-days" class="icon"></i> Agendamentos</button>
+    </nav>
+
+    <div class="sidebar-group">Interoperabilidade</div>
+    <nav class="stagger">
+      <button class="nav-btn" style="--i:0" data-tab="duplicatas"><i data-lucide="git-merge" class="icon"></i> Duplicatas</button>
+      <button class="nav-btn" style="--i:1" data-tab="qualidade"><i data-lucide="shield-check" class="icon"></i> Qualidade</button>
+      <button class="nav-btn" style="--i:2" data-tab="mpi"><i data-lucide="database" class="icon"></i> MPI</button>
+      <button class="nav-btn" style="--i:3" data-tab="bundle"><i data-lucide="braces" class="icon"></i> Bundle FHIR</button>
+    </nav>
+
+    <div class="sidebar-group">Operações</div>
+    <nav class="stagger">
+      <button class="nav-btn" style="--i:0" data-tab="criar"><i data-lucide="user-plus" class="icon"></i> Criar paciente</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="/docs" target="_blank"><i data-lucide="book-open" style="width:13px;height:13px"></i> Swagger /docs</a>
+      <a href="/metadata" target="_blank"><i data-lucide="file-json" style="width:13px;height:13px"></i> Capability statement</a>
+      <div class="stamp mono">v0.2.0 · FHIR R4</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <div class="breadcrumb">Estação clínica · interoperabilidade</div>
+        <h1 id="page-title">Visão geral</h1>
+      </div>
+      <div class="topbar-actions">
+        <span class="live-pill">
+          <span class="live-dot"></span>
+          sinal vital · <span class="tabular mono" id="last-update">—</span>
+        </span>
+        <label class="chip-select" title="Atualizar automaticamente">
+          <i data-lucide="timer" class="icon" style="width:13px;height:13px"></i>
+          <select id="autorefresh">
+            <option value="0">manual</option>
+            <option value="10000">10s</option>
+            <option value="30000" selected>30s</option>
+            <option value="60000">1min</option>
+          </select>
+        </label>
+        <button id="theme-toggle" class="icon-btn" title="Alternar tema" aria-label="Alternar tema">
+          <i data-lucide="moon" class="icon"></i>
+        </button>
+        <button id="refresh-btn" class="btn"><i data-lucide="refresh-cw" class="icon"></i> Atualizar</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ VISÃO GERAL — Bento 2.0 ============ -->
+      <section data-section="visao" class="section">
+
+        <div class="bento mb-4">
+          <div class="status span-3" style="--i:0">
+            <div class="status-mono">A</div>
+            <div class="status-body">
+              <div class="status-eyebrow">Node · Express · Supabase</div>
+              <div class="status-name">MediCare</div>
+              <div class="status-url mono" id="sys-a-url">—</div>
+            </div>
+            <span id="sys-a-pill" class="status-state"><span class="dot"></span><span id="sys-a-text">—</span></span>
+            <span class="vital-line" aria-hidden="true"></span>
+          </div>
+          <div class="status span-3" style="--i:1">
+            <div class="status-mono b">B</div>
+            <div class="status-body">
+              <div class="status-eyebrow">FastAPI · SQLAlchemy · JWT</div>
+              <div class="status-name">UBS — PET-Saúde</div>
+              <div class="status-url mono" id="sys-b-url">—</div>
+            </div>
+            <span id="sys-b-pill" class="status-state"><span class="dot"></span><span id="sys-b-text">—</span></span>
+            <span class="vital-line" aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <div class="metric-strip mb-4">
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="users" class="icon"></i> Pacientes</div>
+            <div class="metric-value tabular" id="n-pacientes">—</div>
+            <div class="metric-sub">consolidados A + B</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="stethoscope" class="icon"></i> Profissionais</div>
+            <div class="metric-value tabular" id="n-prof">—</div>
+            <div class="metric-sub">cadastrados</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="calendar-days" class="icon"></i> Agendamentos</div>
+            <div class="metric-value tabular" id="n-agend">—</div>
+            <div class="metric-sub">total ativo</div>
+          </div>
+          <div class="metric metric-vital">
+            <div class="metric-label"><i data-lucide="git-merge" class="icon"></i> Duplicatas</div>
+            <div class="metric-value tabular" id="n-dups">—</div>
+            <div class="metric-sub">detectadas cross-sistema</div>
+          </div>
+        </div>
+
+        <div class="bento">
+          <div class="chart-card span-4">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title">Tráfego por endpoint</div>
+                <div class="chart-meta">últimas 50 requisições</div>
+              </div>
+              <span class="badge">audit log</span>
+            </div>
+            <canvas id="chart-trafego" height="170"></canvas>
+          </div>
+          <div class="panel span-2">
+            <div class="flex-between mb-4">
+              <div class="chart-title">Operacional</div>
+              <span class="badge">tempo real</span>
+            </div>
+            <div class="ops-list" id="ops-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PACIENTES ============ -->
+      <section data-section="pacientes" class="section hidden">
+        <div class="filterbar">
+          <div class="field"><label>Origem</label>
+            <select id="pac-origem"><option>ambos</option><option>sistema_a</option><option>sistema_b</option></select>
+          </div>
+          <div class="field"><label>Nome</label><input id="pac-name" placeholder="ex.: Aline Tavares" /></div>
+          <div class="field"><label>Identifier (CNS / CPF)</label><input id="pac-id" placeholder="ex.: 700912…" /></div>
+          <label class="field-check"><input id="pac-dedup" type="checkbox" checked /> de-duplicar</label>
+          <button id="pac-search" class="btn btn-primary"><i data-lucide="search" class="icon"></i> Buscar</button>
+          <button class="btn" data-export="pac-table" data-filename="pacientes"><i data-lucide="download" class="icon"></i> CSV</button>
+          <div class="right"><span id="pac-total" class="meta">—</span></div>
+        </div>
+        <div class="panel panel-flush">
+          <div class="table-wrap"><table id="pac-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ============ PROFISSIONAIS ============ -->
+      <section data-section="profissionais" class="section hidden">
+        <div class="filterbar">
+          <div class="field"><label>Origem</label>
+            <select id="prof-origem"><option>ambos</option><option>sistema_a</option><option>sistema_b</option></select>
+          </div>
+          <div class="field"><label>Nome</label><input id="prof-name" /></div>
+          <div class="field"><label>CRM</label><input id="prof-id" placeholder="ex.: SP472831" /></div>
+          <label class="field-check"><input id="prof-dedup" type="checkbox" checked /> de-duplicar</label>
+          <button id="prof-search" class="btn btn-primary"><i data-lucide="search" class="icon"></i> Buscar</button>
+          <button class="btn" data-export="prof-table" data-filename="profissionais"><i data-lucide="download" class="icon"></i> CSV</button>
+          <div class="right"><span id="prof-total" class="meta">—</span></div>
+        </div>
+        <div class="panel panel-flush">
+          <div class="table-wrap"><table id="prof-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ============ AGENDAMENTOS ============ -->
+      <section data-section="agendamentos" class="section hidden">
+        <div class="filterbar">
+          <div class="field"><label>Origem</label>
+            <select id="ag-origem"><option>ambos</option><option>sistema_a</option><option>sistema_b</option></select>
+          </div>
+          <div class="field"><label>Status</label>
+            <select id="ag-status">
+              <option value="">todos</option>
+              <option>booked</option><option>pending</option><option>arrived</option>
+              <option>fulfilled</option><option>cancelled</option><option>noshow</option>
+            </select>
+          </div>
+          <div class="field"><label>Data ≥</label><input id="ag-ge" type="date" /></div>
+          <div class="field"><label>Data ≤</label><input id="ag-le" type="date" /></div>
+          <button id="ag-search" class="btn btn-primary"><i data-lucide="search" class="icon"></i> Buscar</button>
+          <button class="btn" data-export="ag-table" data-filename="agendamentos"><i data-lucide="download" class="icon"></i> CSV</button>
+          <div class="right"><span id="ag-total" class="meta">—</span></div>
+        </div>
+        <div class="panel panel-flush">
+          <div class="table-wrap"><table id="ag-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ============ DUPLICATAS ============ -->
+      <section data-section="duplicatas" class="section hidden">
+        <div class="bento">
+          <div class="panel span-3">
+            <div class="flex-between mb-4">
+              <div class="chart-title"><i data-lucide="users" class="icon" style="vertical-align:-3px;margin-right:6px"></i>Pacientes em A e B</div>
+              <span id="dup-pac-count" class="badge">0</span>
+            </div>
+            <div id="dup-pac"></div>
+          </div>
+          <div class="panel span-3">
+            <div class="flex-between mb-4">
+              <div class="chart-title"><i data-lucide="stethoscope" class="icon" style="vertical-align:-3px;margin-right:6px"></i>Profissionais em A e B</div>
+              <span id="dup-prof-count" class="badge">0</span>
+            </div>
+            <div id="dup-prof"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ QUALIDADE ============ -->
+      <section data-section="qualidade" class="section hidden">
+        <div id="qualidade-cards" class="bento stagger"></div>
+      </section>
+
+      <!-- ============ MPI ============ -->
+      <section data-section="mpi" class="section hidden">
+        <div class="panel mb-4 flex-between">
+          <div>
+            <div class="chart-title"><i data-lucide="database" class="icon" style="vertical-align:-3px;margin-right:6px"></i>Master Patient Index</div>
+            <div class="text-xs muted mt-2">Persistência local (SQLite) do mapeamento CNS/CPF/CRM → IDs em A e B.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="mpi-msg" class="text-xs muted"></span>
+            <button id="mpi-reconciliar" class="btn btn-vital"><i data-lucide="refresh-cw" class="icon"></i> Reconciliar</button>
+          </div>
+        </div>
+        <div class="bento">
+          <div class="panel panel-flush span-3">
+            <div class="panel-pad" style="border-bottom:1px solid var(--border)">
+              <div class="chart-title">Pacientes no índice</div>
+            </div>
+            <div id="mpi-pac" class="table-wrap"></div>
+          </div>
+          <div class="panel panel-flush span-3">
+            <div class="panel-pad" style="border-bottom:1px solid var(--border)">
+              <div class="chart-title">Profissionais no índice</div>
+            </div>
+            <div id="mpi-prof" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BUNDLE ============ -->
+      <section data-section="bundle" class="section hidden">
+        <div class="filterbar">
+          <div class="field"><label>Origem</label>
+            <select id="bundle-origem"><option>ambos</option><option>sistema_a</option><option>sistema_b</option></select>
+          </div>
+          <label class="field-check"><input id="bundle-dedup" type="checkbox" checked /> de-duplicar</label>
+          <button id="bundle-load" class="btn btn-primary"><i data-lucide="download" class="icon"></i> Carregar</button>
+          <button id="bundle-copy" class="btn"><i data-lucide="clipboard" class="icon"></i> Copiar JSON</button>
+          <div class="right"><span id="bundle-info" class="meta">—</span></div>
+        </div>
+        <pre id="bundle-view" class="bundle-view">Clique em "Carregar" para buscar o Bundle FHIR consolidado dos dois sistemas.</pre>
+      </section>
+
+      <!-- ============ CRIAR PACIENTE ============ -->
+      <section data-section="criar" class="section hidden">
+        <form id="form-criar" class="panel" style="max-width:680px">
+          <div class="flex-between mb-4">
+            <div>
+              <div class="chart-title">Cadastrar novo paciente</div>
+              <div class="text-xs muted mt-2">Escreve direto em A ou B via FHIR. Informe CNS ou CPF para que apareça consolidado depois.</div>
+            </div>
+            <span class="badge">POST /pacientes</span>
+          </div>
+          <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
+            <div class="field"><label>Nome *</label><input name="nome" required placeholder="ex.: Aline Tavares" /></div>
+            <div class="field"><label>Sexo</label>
+              <select name="sexo"><option value="">—</option><option>M</option><option>F</option><option>O</option></select>
+            </div>
+            <div class="field"><label>CNS (cartão SUS)</label><input name="cartao_sus" placeholder="700 0001 2345 6789" /></div>
+            <div class="field"><label>CPF</label><input name="cpf" placeholder="000.000.000-00" /></div>
+            <div class="field"><label>Telefone</label><input name="telefone" placeholder="+55 (11) 9 8472-1928" /></div>
+            <div class="field"><label>E-mail</label><input name="email" type="email" placeholder="aline@example.com" /></div>
+            <div class="field"><label>Data de nascimento</label><input name="data_nascimento" type="date" /></div>
+            <div class="field"><label>Sistema destino *</label>
+              <select name="destino" required>
+                <option value="sistema_a">Sistema A — MediCare</option>
+                <option value="sistema_b">Sistema B — UBS</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-4" style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar paciente</button>
+            <span class="text-xs muted">CNS ou CPF é necessário para futura de-duplicação.</span>
+          </div>
+          <pre id="criar-resultado" class="bundle-view mt-4" style="max-height:280px"></pre>
+        </form>
+      </section>
+
+      <!-- ============ AUDIT ============ -->
+      <section data-section="audit" class="section hidden">
+        <div class="flex-between mb-4">
+          <div class="text-xs muted">Últimos 200 eventos. CPF/CNS/e-mail e IPs são automaticamente mascarados (LGPD).</div>
+          <button class="btn" data-export="audit-table" data-filename="audit_log"><i data-lucide="download" class="icon"></i> Exportar CSV</button>
+        </div>
+        <div class="panel panel-flush">
+          <div class="table-wrap"><table id="audit-table"></table></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL OVERLAY ============ -->
+<div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" id="modal" tabindex="-1">
+    <div class="modal-head">
+      <div style="min-width:0">
+        <h2 class="modal-title" id="modal-title">—</h2>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <button class="close-btn" id="modal-close" aria-label="Fechar"><i data-lucide="x" class="icon"></i></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ============ TOAST CONTAINER ============ -->
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script src="/static/dashboard.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
