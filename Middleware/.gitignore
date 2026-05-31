@@ -1,0 +1,28 @@
+# ─── Python ───────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# ─── Variaveis de ambiente (contem segredos) ──────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Banco de dados local ─────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+
+# ─── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
