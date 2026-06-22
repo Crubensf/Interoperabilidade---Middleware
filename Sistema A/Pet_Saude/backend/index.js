@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from './supabaseMock.js';
 import dotenv from 'dotenv';
 
 import agendamentoController from './controllers/agendamento.controller.js';
