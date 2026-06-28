@@ -323,12 +323,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'API rodando', auth: process.env.API_KEY ? 'api-key' : 'none' });
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📊 Conectado ao Supabase: ${process.env.SUPABASE_URL}`);
-    console.log(`🔐 Auth: ${process.env.API_KEY ? 'X-API-Key habilitada' : 'DESABILITADA (defina API_KEY no .env)'}`);
-  });
-}
-
-export default app;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📊 Conectado ao Supabase: ${process.env.SUPABASE_URL}`);
+  console.log(`🔐 Auth: ${process.env.API_KEY ? 'X-API-Key habilitada' : 'DESABILITADA (defina API_KEY no .env)'}`);
+});
