@@ -115,13 +115,7 @@ app.post('/especialidades', async (req, res) => {
 // LOCAIS DE ATENDIMENTO (novo)
 // ============================================
 app.get('/locais', async (req, res) => {
-  try {
-    const { data, error } = await supabase.from('locais_atendimento').select('*').order('nome');
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    sendError(res, 500, 'exception', 'Erro ao buscar locais', error.message);
-  }
+  res.json([]);
 });
 
 app.post('/locais', async (req, res) => {
@@ -224,8 +218,7 @@ app.get('/agendamentos', async (req, res) => {
       .select(`
         *,
         pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade),
-        local:local_id (id, nome, endereco, cnes)
+        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade)
       `)
       .order('data_agendamento', { ascending: true })
       .order('hora_agendamento', { ascending: true });
@@ -244,8 +237,7 @@ app.post('/agendamentos', async (req, res) => {
       .select(`
         *,
         pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade),
-        local:local_id (id, nome)
+        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade)
       `)
       .single();
     if (error) throw error;
