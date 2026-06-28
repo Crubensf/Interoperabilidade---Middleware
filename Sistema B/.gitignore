@@ -24,6 +24,11 @@ yarn-error.log*
 .idea/
 .claude/
 
+# ─── Banco SQLite legado (banco real é Postgres) ──────────────────
+*.db
+*.sqlite
+*.sqlite3
+
 # ─── OS ───────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -1,13 +1,17 @@
 import asyncio
+import logging
 from typing import Literal
 
 from app.cache import bundle_cache
 from app.clients.sistema_a import sistema_a_client
 from app.clients.sistema_b import sistema_b_client
+from app.config import settings
+from app.fhir.ingestion import persist_shadow_entries
 from app.fhir.normalizer import extrair_recursos
 
 
 Origem = Literal["sistema_a", "sistema_b", "ambos"]
+logger = logging.getLogger(__name__)
 
 
 async def _coletar_de(nome: str) -> list[dict]:
@@ -17,7 +21,17 @@ async def _coletar_de(nome: str) -> list[dict]:
             bundle = await sistema_a_client.bundle_fhir()
         else:
             bundle = await sistema_b_client.bundle_fhir_geral()
-        return extrair_recursos(bundle, origem=nome)
+        entries = extrair_recursos(bundle, origem=nome)
+        if settings.SHADOW_PERSIST_READS and entries:
+            try:
+                await asyncio.to_thread(
+                    persist_shadow_entries,
+                    entries,
+                    source_system=nome,
+                )
+            except Exception:
+                logger.exception("Falha ao persistir shadow snapshot de %s.", nome)
+        return entries
 
     entries, _hit = await bundle_cache.get_or_set(f"bundle:{nome}", loader)
     return entries

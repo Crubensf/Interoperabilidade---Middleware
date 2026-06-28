@@ -105,19 +105,19 @@ const Dashboard = () => {
 
       // Consultas de hoje
       const consultasHojeSorted = consultasDodia
-        .sort((a, b) => a.hora_agendamento.localeCompare(b.hora_agendamento))
+        .sort((a, b) => (a.hora_agendamento || '').localeCompare(b.hora_agendamento || ''))
         .slice(0, 5);
       setConsultasHoje(consultasHojeSorted);
 
       // Próximas consultas (futuras)
       const futuras = agendamentos
-        .filter((a) => a.data_agendamento >= hoje && a.status === 'agendado')
+        .filter((a) => a.data_agendamento && a.data_agendamento >= hoje && a.status === 'agendado')
         .sort((a, b) => {
-          const dateCompare = a.data_agendamento.localeCompare(
-            b.data_agendamento
+          const dateCompare = (a.data_agendamento || '').localeCompare(
+            b.data_agendamento || ''
           );
           if (dateCompare === 0) {
-            return a.hora_agendamento.localeCompare(b.hora_agendamento);
+            return (a.hora_agendamento || '').localeCompare(b.hora_agendamento || '');
           }
           return dateCompare;
         })

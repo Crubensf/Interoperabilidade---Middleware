@@ -47,9 +47,9 @@ async def duplicatas():
 
 @router.post("/mpi/reconciliar")
 async def reconciliar(
-    persistir: bool = Query(True, description="Grava no MPI persistido (SQLite)"),
+    persistir: bool = Query(True, description="Grava no MPI persistido (Postgres)"),
 ):
-    """Lê A e B, persiste o índice de identidade no MPI local."""
+    """Le A e B, persiste o indice de identidade no MPI local."""
     try:
         entries = await coletar_entries(origem="ambos")
     except RuntimeError as e:

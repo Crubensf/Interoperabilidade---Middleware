@@ -7,9 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.core.environment import settings
+from app.core.security import get_password_hash
 from app.modelos.especialidade import Especialidade
 from app.modelos.local_atendimento import LocalAtendimento
 from app.modelos.profissional import Profissional
+from app.modelos.usuario import Usuario
 
 
 ESPECIALIDADES = [
@@ -109,6 +112,22 @@ def _seed_profissionais_para_todas_especialidades(db: Session) -> None:
         db.add(Profissional(nome=nome_prof, especialidade_id=esp.id))
 
 
+def _seed_admin(db: Session) -> None:
+    """Cria o usuário admin se ainda não existir. Necessário para o middleware
+    autenticar no Sistema B (ele faz login com ADMIN_EMAIL/ADMIN_SENHA)."""
+    if not settings.ADMIN_EMAIL or not settings.ADMIN_SENHA:
+        return
+    existe = db.scalar(select(Usuario).where(Usuario.email == settings.ADMIN_EMAIL))
+    if existe:
+        return
+    db.add(Usuario(
+        nome=settings.ADMIN_NOME,
+        email=settings.ADMIN_EMAIL,
+        senha_hash=get_password_hash(settings.ADMIN_SENHA),
+        is_admin=True,
+    ))
+
+
 def bootstrap_all() -> None:
     db = SessionLocal()
     try:
@@ -119,6 +138,9 @@ def bootstrap_all() -> None:
         db.commit()
 
         _seed_profissionais_para_todas_especialidades(db)
+        db.commit()
+
+        _seed_admin(db)
         db.commit()
     finally:
         db.close()

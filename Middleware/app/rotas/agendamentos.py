@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.agregador import coletar_entries
 from app.fhir.normalizer import (
+    construir_lookup,
     filtrar_appointment,
     filtrar_por_tipo,
     paginar,
@@ -25,6 +26,7 @@ async def listar_agendamentos(
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e))
 
+    lookup = construir_lookup(entries)
     appts = filtrar_por_tipo(entries, "Appointment")
     appts = filtrar_appointment(appts, status=status, date_ge=date_ge, date_le=date_le)
     pagina, total = paginar(appts, offset, count)
@@ -33,5 +35,5 @@ async def listar_agendamentos(
         "total": total,
         "offset": offset,
         "count": len(pagina),
-        "items": [resumir_agendamento(e["resource"]) for e in pagina],
+        "items": [resumir_agendamento(e["resource"], lookup) for e in pagina],
     }

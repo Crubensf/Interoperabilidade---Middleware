@@ -3,6 +3,22 @@ from typing import Iterable
 
 SOURCE_TAG_SYSTEM = "http://middleware.interop/source"
 
+CNS_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/cns"
+CPF_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/cpf"
+CRM_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/crm"
+
+
+def construir_lookup(entries: Iterable[dict]) -> dict[str, str]:
+    """Mapeia fullUrl -> resourceType para resolver referências `urn:uuid:` nos
+    Appointments (Sistema B serializa participants assim)."""
+    lookup: dict[str, str] = {}
+    for e in entries or []:
+        full = e.get("fullUrl")
+        rtype = (e.get("resource") or {}).get("resourceType")
+        if full and rtype:
+            lookup[full] = rtype
+    return lookup
+
 
 def _tag_origem(resource: dict, origem: str) -> dict:
     """Adiciona uma meta.tag indicando a origem (sistema_a | sistema_b) ao recurso FHIR."""
@@ -47,7 +63,6 @@ def filtrar_por_tipo(entries: Iterable[dict], resource_type: str) -> list[dict]:
 def resumir_paciente(resource: dict) -> dict:
     """Resumo legível de Patient para a API REST unificada."""
     name = (resource.get("name") or [{}])[0]
-    identifiers = {i.get("system", ""): i.get("value") for i in resource.get("identifier", []) or []}
     telecom = {t.get("system"): t.get("value") for t in resource.get("telecom", []) or []}
     return {
         "id": resource.get("id"),
@@ -55,8 +70,8 @@ def resumir_paciente(resource: dict) -> dict:
         "nome": name.get("text") or " ".join(name.get("given", []) + [name.get("family", "")]).strip(),
         "sexo": resource.get("gender"),
         "data_nascimento": resource.get("birthDate"),
-        "cpf": _achar_por_substring(identifiers, "cpf"),
-        "cartao_sus": _achar_por_substring(identifiers, "cns"),
+        "cpf": _identifier_value(resource, CPF_SYSTEM),
+        "cartao_sus": _identifier_value(resource, CNS_SYSTEM),
         "telefone": telecom.get("phone"),
         "email": telecom.get("email"),
     }
@@ -64,7 +79,6 @@ def resumir_paciente(resource: dict) -> dict:
 
 def resumir_profissional(resource: dict) -> dict:
     name = (resource.get("name") or [{}])[0]
-    identifiers = {i.get("system", ""): i.get("value") for i in resource.get("identifier", []) or []}
     telecom = {t.get("system"): t.get("value") for t in resource.get("telecom", []) or []}
     qualif = resource.get("qualification") or []
     especialidade = None
@@ -75,26 +89,51 @@ def resumir_profissional(resource: dict) -> dict:
         "id": resource.get("id"),
         "origem": _origem(resource),
         "nome": name.get("text") or " ".join(name.get("given", []) + [name.get("family", "")]).strip(),
-        "crm": _achar_por_substring(identifiers, "crm"),
+        "crm": _identifier_value(resource, CRM_SYSTEM),
         "especialidade": especialidade,
         "telefone": telecom.get("phone"),
         "email": telecom.get("email"),
     }
 
 
-def resumir_agendamento(resource: dict) -> dict:
-    participants = resource.get("participant", []) or []
+def _tipo_por_ref(ref: str, lookup: dict[str, str] | None) -> str | None:
+    """Resolve o resourceType de uma reference.
+
+    Aceita formatos:
+      - ResourceType/123   (literal: prefixo é o tipo)
+      - urn:uuid:xxx       (urn-uuid: consulta lookup `fullUrl -> resourceType`)
+    """
+    if not ref:
+        return None
+    if ref.startswith("urn:") and lookup:
+        return lookup.get(ref)
+    head = ref.split("/", 1)[0]
+    if head in {"Patient", "Practitioner", "Location"}:
+        return head
+    return None
+
+
+def resumir_agendamento(resource: dict, lookup: dict[str, str] | None = None) -> dict:
+    """Resumo legível de Appointment.
+
+    `lookup` é o mapa `fullUrl -> resourceType` (de construir_lookup) — necessário
+    quando os participants vêm com referências `urn:uuid:...` (Sistema B).
+    """
     paciente_ref = profissional_ref = local_ref = None
-    for p in participants:
+    for p in resource.get("participant", []) or []:
         actor = p.get("actor") or {}
         ref = actor.get("reference") or ""
         display = actor.get("display")
-        if "Patient" in ref or (display and paciente_ref is None and "Practitioner" not in ref and "Location" not in ref):
-            paciente_ref = paciente_ref or display
-        if "Practitioner" in ref:
+        tipo = _tipo_por_ref(ref, lookup)
+        if tipo == "Patient":
+            paciente_ref = display
+        elif tipo == "Practitioner":
             profissional_ref = display
-        if "Location" in ref:
+        elif tipo == "Location":
             local_ref = display
+        elif paciente_ref is None and display:
+            # fallback heurístico: primeiro display desconhecido vira paciente
+            paciente_ref = display
 
     appt_type = resource.get("appointmentType") or {}
     return {
@@ -118,20 +157,9 @@ def _origem(resource: dict) -> str | None:
     return None
 
 
-def _achar_por_substring(d: dict, substr: str) -> str | None:
-    for k, v in d.items():
-        if substr.lower() in (k or "").lower():
-            return v
-    return None
-
-
 # =====================================================================
 # De-duplicação cross-sistema
 # =====================================================================
-
-CNS_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/cns"
-CPF_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/cpf"
-CRM_SYSTEM = "http://rnds.saude.gov.br/fhir/r4/NamingSystem/crm"
 
 
 def _identifier_value(resource: dict, system: str) -> str | None:

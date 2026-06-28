@@ -11,6 +11,7 @@ from app.fhir.normalizer import (
     CPF_SYSTEM,
     SOURCE_TAG_SYSTEM,
     _identifier_value,
+    construir_lookup,
     filtrar_por_tipo,
     resumir_paciente,
     resumir_agendamento,
@@ -97,6 +98,7 @@ async def detalhe_paciente(
         chaves_pacientes.add((origem, str(r.get("id"))))
 
     # 3. Busca agendamentos relacionados — cruza pela referência Patient/{id}
+    lookup = construir_lookup(entries)
     agendamentos_entries = filtrar_por_tipo(entries, "Appointment")
     timeline = []
     for ae in agendamentos_entries:
@@ -110,7 +112,7 @@ async def detalhe_paciente(
                 if orig == ag_origem and (
                     ref.endswith(f"/{pid}") or ref.endswith(f":{pid}")
                 ):
-                    timeline.append(resumir_agendamento(ag))
+                    timeline.append(resumir_agendamento(ag, lookup))
                     break
             else:
                 continue

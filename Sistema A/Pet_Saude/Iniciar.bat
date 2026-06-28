@@ -4,7 +4,7 @@ title Sistema A - Pet Saude
 
 REM ============================================================
 REM  Inicia o Sistema A (Pet_Saude)
-REM   - Backend  : Node.js + Express   -> http://localhost:5000
+REM   - Backend  : Node.js + Express   -> http://localhost:5050
 REM   - Frontend : React + Vite        -> http://localhost:5173
 REM ============================================================
 
@@ -59,7 +59,7 @@ if not exist "backend\.env" (
 )
 
 REM --- Inicia backend em nova janela ----------------------------
-echo [start] Iniciando backend em http://localhost:5000 ...
+echo [start] Iniciando backend em http://localhost:5050 ...
 start "Sistema A - Backend" cmd /k "cd /d "%~dp0backend" && npm run dev"
 
 REM --- Pequena espera para o backend subir ----------------------
@@ -72,7 +72,7 @@ start "Sistema A - Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 echo.
 echo ============================================================
 echo   Sistema A iniciado!
-echo   Backend  : http://localhost:5000
+echo   Backend  : http://localhost:5050
 echo   Frontend : http://localhost:5173
 echo ============================================================
 echo.

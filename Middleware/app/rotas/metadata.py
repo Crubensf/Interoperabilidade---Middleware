@@ -30,19 +30,27 @@ def _capability_statement() -> dict:
                     },
                     {
                         "type": "Practitioner",
-                        "interaction": [{"code": "search-type"}],
+                        "interaction": [{"code": "search-type"}, {"code": "create"}],
                         "searchParam": [
                             {"name": "identifier", "type": "token"},
                             {"name": "name", "type": "string"},
                         ],
                     },
                     {
+                        "type": "Location",
+                        "interaction": [{"code": "create"}],
+                    },
+                    {
                         "type": "Appointment",
-                        "interaction": [{"code": "search-type"}],
+                        "interaction": [{"code": "search-type"}, {"code": "create"}],
                         "searchParam": [
                             {"name": "status", "type": "token"},
                             {"name": "date", "type": "date"},
                         ],
+                    },
+                    {
+                        "type": "Bundle",
+                        "interaction": [{"code": "create"}],
                     },
                 ],
             }

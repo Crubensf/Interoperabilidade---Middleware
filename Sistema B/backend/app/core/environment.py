@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Usuário admin criado automaticamente no primeiro boot, se não existir.
+    # Necessário para o middleware autenticar (ele faz login com essas credenciais).
+    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_SENHA: str = "trocar_aqui"
+    ADMIN_NOME: str = "Admin"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -1,17 +1,19 @@
 import asyncio
+import ipaddress
 import re
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.db import database_health, init_db
 from app.clients.sistema_a import sistema_a_client
 from app.clients.sistema_b import sistema_b_client
-from app.mpi.database import init_db
 from app.mpi.repository import registrar_audit
 from app.rotas.pacientes import router as pacientes_router
 from app.rotas.profissionais import router as profissionais_router
@@ -20,8 +22,15 @@ from app.rotas.bundle import router as bundle_router
 from app.rotas.metadata import router as metadata_router
 from app.rotas.qualidade import router as qualidade_router
 from app.rotas.escrita import router as escrita_router
+from app.rotas.fhir_escrita import router as fhir_escrita_router
 from app.rotas.dashboard import router as dashboard_router
 from app.rotas.detalhe import router as detalhe_router
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
 
 
 app = FastAPI(
@@ -31,17 +40,14 @@ app = FastAPI(
         "de dois sistemas. Inclui dashboard, MPI, qualidade de dados e write-through."
     ),
     version="0.2.0",
+    lifespan=lifespan,
 )
 
-init_db()
-
-origins = ["*"] if settings.CORS_ORIGINS.strip() == "*" else [
-    o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()
-]
+origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=origins != ["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -72,21 +78,23 @@ def _redact_query(query: str) -> str:
 
 
 def _redact_path(path: str) -> str:
-    # protege ids longos numéricos diretamente no path (ex.: /pacientes/000111222)
+    # protege ids longos numericos diretamente no path (ex.: /pacientes/000111222)
     return _LONG_DIGITS.sub("[REDACTED]", path)
 
 
 def _redact_cliente(ip: str | None) -> str | None:
-    # mantém só /24 do IPv4; para IPv6 mascara últimos 4 grupos
     if not ip:
         return None
-    if ":" in ip:
-        parts = ip.split(":")
-        return ":".join(parts[:4] + ["xxxx"] * (len(parts) - 4)) if len(parts) > 4 else ip
-    octs = ip.split(".")
-    if len(octs) == 4:
-        return ".".join(octs[:3] + ["0"])
-    return ip
+    try:
+        parsed = ipaddress.ip_address(ip)
+    except ValueError:
+        return None
+
+    if parsed.version == 4:
+        network = ipaddress.ip_network(f"{parsed}/24", strict=False)
+    else:
+        network = ipaddress.ip_network(f"{parsed}/64", strict=False)
+    return str(network.network_address)
 
 
 @app.middleware("http")
@@ -106,6 +114,14 @@ async def audit_middleware(request: Request, call_next):
                 status=response.status_code,
                 duracao_ms=duracao_ms,
                 cliente=_redact_cliente(request.client.host if request.client else None),
+                api_key_id=getattr(request.state, "api_key_id", None),
+                source_system=getattr(request.state, "source_system", None),
+                event_id=request.headers.get("X-Event-Id"),
+                idempotency_key=request.headers.get("Idempotency-Key"),
+                details={
+                    "api_key_name": getattr(request.state, "api_key_name", None),
+                    "api_key_scopes": list(getattr(request.state, "api_key_scopes", []) or []),
+                },
             )
         except Exception:
             pass
@@ -118,6 +134,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(pacientes_router)
 app.include_router(detalhe_router)
 app.include_router(escrita_router)
+app.include_router(fhir_escrita_router)
 app.include_router(profissionais_router)
 app.include_router(agendamentos_router)
 app.include_router(bundle_router)
@@ -148,13 +165,22 @@ def info():
 
 @app.get("/health", tags=["Meta"])
 async def health():
+    """Liveness: o middleware está rodando. Sempre 200."""
+    return {"status": "ok"}
+
+
+@app.get("/ready", tags=["Meta"])
+async def ready():
+    """Readiness: 200 so se banco + sistemas integrados estao acessiveis."""
+    db_ok, db_info = database_health()
     a_ok, b_ok = await asyncio.gather(
         sistema_a_client.health(),
         sistema_b_client.health(),
     )
-    status = "ok" if a_ok and b_ok else "degraded"
-    return {
-        "status": status,
+    ready_ok = db_ok and a_ok and b_ok
+    body = {
+        "status": "ready" if ready_ok else "degraded",
+        "database": db_info,
         "sistema_a": "up" if a_ok else "down",
         "sistema_b": "up" if b_ok else "down",
         "urls": {
@@ -162,3 +188,4 @@ async def health():
             "sistema_b": settings.SISTEMA_B_BASE_URL,
         },
     }
+    return JSONResponse(body, status_code=200 if ready_ok else 503)

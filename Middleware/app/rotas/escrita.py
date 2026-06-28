@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.agregador import invalidar_cache_bundles
+from app.auth import require_api_key
 from app.clients.sistema_a import sistema_a_client
 from app.clients.sistema_b import sistema_b_client
 
@@ -55,7 +56,10 @@ def _erro_externo(destino: str, exc: Exception):
 # =====================================================================
 # Router
 # =====================================================================
-router = APIRouter(tags=["Escrita"])
+router = APIRouter(
+    tags=["Escrita"],
+    dependencies=[Depends(require_api_key())],
+)
 
 
 # ---- Pacientes ----
