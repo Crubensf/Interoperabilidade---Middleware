@@ -42,27 +42,26 @@ def run_migrations() -> None:
         raise RuntimeError(f"Nenhuma migration encontrada em {MIGRATIONS_DIR}.")
 
     with conn() as connection:
-        # Criar a tabela de controle se não existir
-        connection.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                id SERIAL PRIMARY KEY,
-                filename VARCHAR(255) UNIQUE NOT NULL,
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        applied = {
-            row["filename"] 
-            for row in connection.execute("SELECT filename FROM schema_migrations").fetchall()
-        }
+        try:
+            applied = {
+                row["version"] 
+                for row in connection.execute("SELECT version FROM schema_migrations").fetchall()
+            }
+        except Exception:
+            applied = set()
+            connection.rollback()
 
         for migration_file in migration_files:
-            if migration_file.name not in applied:
+            version = migration_file.name.split("_")[0]
+            if version not in applied:
                 _apply_migration_with_conn(migration_file, connection)
-                connection.execute(
-                    "INSERT INTO schema_migrations (filename) VALUES (%s)",
-                    (migration_file.name,)
-                )
+                try:
+                    connection.execute(
+                        "INSERT INTO schema_migrations (version, description) VALUES (%s, %s) ON CONFLICT (version) DO NOTHING",
+                        (version, migration_file.name)
+                    )
+                except Exception:
+                    connection.rollback()
 
 
 def database_health() -> tuple[bool, dict]:
