@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { supabase } from './supabase.js';
 
 
 import agendamentoController from './controllers/agendamento.controller.js';
@@ -12,11 +12,6 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5050;
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',

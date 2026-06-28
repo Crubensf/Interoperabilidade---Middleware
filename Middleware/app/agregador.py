@@ -57,6 +57,7 @@ async def coletar_entries(origem: Origem = "ambos") -> list[dict]:
     erros: list[str] = []
     for nome, resultado in zip(fontes, resultados):
         if isinstance(resultado, Exception):
+            logger.warning("Falha ao coletar bundle de %s: %s", nome, resultado)
             erros.append(f"{nome}: {resultado}")
             continue
         entries.extend(resultado)
