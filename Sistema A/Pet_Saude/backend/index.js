@@ -2,6 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { supabase } from './supabase.js';
+import {
+  listarAgendamentosDetalhados,
+  listarEspecialidadesDisponiveis,
+  listarLocaisDisponiveis,
+  listarProfissionaisEnriquecidos,
+  obterProfissionalEnriquecido,
+  resolverLocalAgendamento,
+  carregarLocaisPorIds,
+  carregarProfissionaisEnriquecidosPorIds,
+} from './utils/supabaseJoinFallback.js';
 
 
 import agendamentoController from './controllers/agendamento.controller.js';
@@ -91,8 +101,14 @@ app.delete('/pacientes/:id', async (req, res) => {
 // ============================================
 app.get('/especialidades', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('especialidades').select('*').order('nome');
-    if (error) throw error;
+    let data = await listarEspecialidadesDisponiveis();
+    if (data.length === 0) {
+      const { data: profissionais, error } = await supabase.from('profissionais').select('especialidade').not('especialidade', 'is', null);
+      if (error) throw error;
+      data = [...new Set((profissionais || []).map((item) => String(item.especialidade || '').trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b))
+        .map((nome) => ({ id: `legacy-especialidade-${nome.toLowerCase()}`, nome, codigo_cbo: null }));
+    }
     res.json(data);
   } catch (error) {
     sendError(res, 500, 'exception', 'Erro ao buscar especialidades', error.message);
@@ -115,7 +131,22 @@ app.post('/especialidades', async (req, res) => {
 // LOCAIS DE ATENDIMENTO (novo)
 // ============================================
 app.get('/locais', async (req, res) => {
-  res.json([]);
+  try {
+    let data = await listarLocaisDisponiveis();
+    if (data.length === 0) {
+      const { data: agendamentos, error } = await supabase.from('agendamentos').select('id, local_atendimento');
+      if (error) throw error;
+      const locaisMap = new Map();
+      for (const agendamento of agendamentos || []) {
+        const local = resolverLocalAgendamento(agendamento);
+        if (local) locaisMap.set(local.id, local);
+      }
+      data = [...locaisMap.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+    res.json(data);
+  } catch (error) {
+    sendError(res, 500, 'exception', 'Erro ao buscar locais', error.message);
+  }
 });
 
 app.post('/locais', async (req, res) => {
@@ -135,11 +166,7 @@ app.post('/locais', async (req, res) => {
 // ============================================
 app.get('/profissionais', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('profissionais')
-      .select('*')
-      .order('nome');
-    if (error) throw error;
+    const data = await listarProfissionaisEnriquecidos();
     res.json(data);
   } catch (error) {
     sendError(res, 500, 'exception', 'Erro ao buscar profissionais', error.message);
@@ -148,12 +175,7 @@ app.get('/profissionais', async (req, res) => {
 
 app.get('/profissionais/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('profissionais')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
-    if (error) throw error;
+    const data = await obterProfissionalEnriquecido(req.params.id);
     res.json(data);
   } catch (error) {
     sendError(res, 500, 'exception', 'Erro ao buscar profissional', error.message);
@@ -213,16 +235,7 @@ app.get('/fhir/bundle', agendamentoController.getFhirBundleTodos);
 
 app.get('/agendamentos', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .select(`
-        *,
-        pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade)
-      `)
-      .order('data_agendamento', { ascending: true })
-      .order('hora_agendamento', { ascending: true });
-    if (error) throw error;
+    const data = await listarAgendamentosDetalhados();
     res.json(data);
   } catch (error) {
     sendError(res, 500, 'exception', 'Erro ao buscar agendamentos', error.message);
@@ -234,14 +247,25 @@ app.post('/agendamentos', async (req, res) => {
     const { data, error } = await supabase
       .from('agendamentos')
       .insert([req.body])
-      .select(`
-        *,
-        pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
-    res.status(201).json(data);
+
+    const [pacienteRes, profissionais, locais] = await Promise.all([
+      supabase.from('pacientes').select('id, nome, cartao_sus, cpf, telefone').eq('id', data.paciente_id).single(),
+      carregarProfissionaisEnriquecidosPorIds([data.profissional_id]),
+      carregarLocaisPorIds(data.local_id ? [data.local_id] : []),
+    ]);
+
+    if (pacienteRes.error) throw pacienteRes.error;
+
+    const locaisMap = new Map(locais.map((item) => [item.id, item]));
+    res.status(201).json({
+      ...data,
+      pacientes: pacienteRes.data || null,
+      profissionais: profissionais[0] || null,
+      local: resolverLocalAgendamento(data, locaisMap),
+    });
   } catch (error) {
     sendError(res, 500, 'exception', 'Erro ao criar agendamento', error.message);
   }
