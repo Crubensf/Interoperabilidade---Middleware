@@ -13,6 +13,8 @@ from app.modelos.profissional import Profissional
 from app.modelos.especialidade import Especialidade
 from app.modelos.local_atendimento import LocalAtendimento
 from app.modelos.usuario import Usuario
+from app.modelos.outbox import OutboxEvent
+from app.serializadores_fhir.agendamento import agendamento_para_fhir
 
 from app.schemas.agendamento import (
     AgendamentoCreate,
@@ -115,6 +117,14 @@ def criar(
     db.add(obj)
 
     try:
+        db.flush()
+        outbox = OutboxEvent(
+            resource_type="Appointment",
+            resource_id=str(obj.id),
+            action="create",
+            payload_fhir=agendamento_para_fhir(obj)
+        )
+        db.add(outbox)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -218,6 +228,14 @@ def atualizar(
         setattr(obj, k, v)
 
     try:
+        db.flush()
+        outbox = OutboxEvent(
+            resource_type="Appointment",
+            resource_id=str(obj.id),
+            action="update",
+            payload_fhir=agendamento_para_fhir(obj)
+        )
+        db.add(outbox)
         db.commit()
     except IntegrityError:
         db.rollback()

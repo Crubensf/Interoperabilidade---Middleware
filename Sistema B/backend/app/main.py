@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.environment import settings
 from app.core.database import Base, engine
 from app.core.bootstrap import bootstrap_all
+from app.core.outbox_worker import outbox_loop
 from app import modelos
 
 from app.rotas.auth import router as auth_router
@@ -21,7 +23,10 @@ from app.rotas.fhir import router as fhir_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     bootstrap_all()
+    # Iniciar o worker do outbox em background
+    task = asyncio.create_task(outbox_loop())
     yield
+    task.cancel()
 
 
 app = FastAPI(title=settings.API_TITLE, lifespan=lifespan)

@@ -6,7 +6,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.modelos.profissional import Profissional
 from app.modelos.especialidade import Especialidade
+from app.modelos.outbox import OutboxEvent
 from app.schemas.profissional import ProfissionalCreate, ProfissionalOut, ProfissionalUpdate
+from app.serializadores_fhir.profissional import profissional_para_fhir
 
 
 router = APIRouter(
@@ -37,6 +39,16 @@ def criar(payload: ProfissionalCreate, db: Session = Depends(get_db)):
 
     obj = Profissional(**payload.model_dump())
     db.add(obj)
+    db.flush()
+
+    outbox = OutboxEvent(
+        resource_type="Practitioner",
+        resource_id=str(obj.id),
+        action="create",
+        payload_fhir=profissional_para_fhir(obj)
+    )
+    db.add(outbox)
+
     db.commit()
     db.refresh(obj)
     return obj
@@ -99,6 +111,16 @@ def atualizar(profissional_id: int, payload: ProfissionalUpdate, db: Session = D
 
     for k, v in data.items():
         setattr(obj, k, v)
+
+    db.flush()
+
+    outbox = OutboxEvent(
+        resource_type="Practitioner",
+        resource_id=str(obj.id),
+        action="update",
+        payload_fhir=profissional_para_fhir(obj)
+    )
+    db.add(outbox)
 
     db.commit()
     db.refresh(obj)

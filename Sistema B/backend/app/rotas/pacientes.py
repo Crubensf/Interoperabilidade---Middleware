@@ -6,7 +6,9 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.modelos.paciente import Paciente
+from app.modelos.outbox import OutboxEvent
 from app.schemas.paciente import PacienteCreate, PacienteOut, PacienteUpdate
+from app.serializadores_fhir.paciente import paciente_para_fhir
 
 
 router = APIRouter(
@@ -94,6 +96,16 @@ def criar(payload: PacienteCreate, db: Session = Depends(get_db)):
 
     obj = Paciente(**data)
     db.add(obj)
+    db.flush()
+
+    outbox = OutboxEvent(
+        resource_type="Patient",
+        resource_id=str(obj.id),
+        action="create",
+        payload_fhir=paciente_para_fhir(obj)
+    )
+    db.add(outbox)
+    
     db.commit()
     db.refresh(obj)
     return obj
@@ -191,6 +203,16 @@ def atualizar(
     # ---------- ATUALIZA CAMPOS ----------
     for k, v in data.items():
         setattr(obj, k, v)
+
+    db.flush()
+    
+    outbox = OutboxEvent(
+        resource_type="Patient",
+        resource_id=str(obj.id),
+        action="update",
+        payload_fhir=paciente_para_fhir(obj)
+    )
+    db.add(outbox)
 
     db.commit()
     db.refresh(obj)

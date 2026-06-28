@@ -4,6 +4,7 @@ from .profissional import Profissional
 from .especialidade import Especialidade
 from .local_atendimento import LocalAtendimento
 from .agendamento import Agendamento
+from .outbox import OutboxEvent
 
 __all__ = [
     "Usuario",
@@ -12,4 +13,5 @@ __all__ = [
     "Especialidade",
     "LocalAtendimento",
     "Agendamento",
+    "OutboxEvent",
 ]

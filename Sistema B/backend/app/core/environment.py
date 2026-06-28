@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     ADMIN_SENHA: str = "trocar_aqui"
     ADMIN_NOME: str = "Admin"
 
+    MIDDLEWARE_BASE_URL: str | None = None
+    MIDDLEWARE_API_KEY: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
