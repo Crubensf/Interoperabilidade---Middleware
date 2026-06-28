@@ -117,7 +117,7 @@ class AgendamentoService {
   }
 
   _practitionerResource(profissional) {
-    const crmValor = this._crmUnificado(profissional.crm, profissional.crm_uf);
+    const crmValor = this._crmUnificado(profissional.crm, profissional.registro_uf);
     const identifier = crmValor ? [{
       use: 'official',
       type: { coding: [{ system: IDENTIFIER_TYPE_SYSTEM, code: 'PRN', display: 'CRM' }] },
@@ -193,7 +193,7 @@ class AgendamentoService {
       .select(`
         *,
         paciente:paciente_id (*),
-        profissional:profissional_id (*, especialidade:especialidade_id (id, nome, codigo_cbo)),
+        profissional:profissional_id (*),
         local:local_id (*)
       `)
       .eq('id', agendamentoId)
@@ -232,7 +232,7 @@ class AgendamentoService {
       supabase.from('pacientes').select('*').order('nome'),
       supabase
         .from('profissionais')
-        .select('*, especialidade:especialidade_id (id, nome, codigo_cbo)')
+        .select('*')
         .order('nome'),
       supabase.from('locais_atendimento').select('*').order('nome'),
       supabase

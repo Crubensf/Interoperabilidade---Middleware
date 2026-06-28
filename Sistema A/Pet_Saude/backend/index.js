@@ -143,7 +143,7 @@ app.get('/profissionais', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('profissionais')
-      .select('*, especialidade:especialidade_id (id, nome, codigo_cbo)')
+      .select('*')
       .order('nome');
     if (error) throw error;
     res.json(data);
@@ -156,7 +156,7 @@ app.get('/profissionais/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('profissionais')
-      .select('*, especialidade:especialidade_id (id, nome, codigo_cbo)')
+      .select('*')
       .eq('id', req.params.id)
       .single();
     if (error) throw error;
@@ -224,7 +224,7 @@ app.get('/agendamentos', async (req, res) => {
       .select(`
         *,
         pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, crm_uf, especialidade:especialidade_id (id, nome)),
+        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade),
         local:local_id (id, nome, endereco, cnes)
       `)
       .order('data_agendamento', { ascending: true })
@@ -244,7 +244,7 @@ app.post('/agendamentos', async (req, res) => {
       .select(`
         *,
         pacientes:paciente_id (id, nome, cartao_sus, cpf, telefone),
-        profissionais:profissional_id (id, nome, crm, crm_uf),
+        profissionais:profissional_id (id, nome, crm, registro_uf, especialidade),
         local:local_id (id, nome)
       `)
       .single();
