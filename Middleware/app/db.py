@@ -41,8 +41,28 @@ def run_migrations() -> None:
     if not migration_files:
         raise RuntimeError(f"Nenhuma migration encontrada em {MIGRATIONS_DIR}.")
 
-    for migration_file in migration_files:
-        _apply_migration(migration_file)
+    with conn() as connection:
+        # Criar a tabela de controle se não existir
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                id SERIAL PRIMARY KEY,
+                filename VARCHAR(255) UNIQUE NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        applied = {
+            row["filename"] 
+            for row in connection.execute("SELECT filename FROM schema_migrations").fetchall()
+        }
+
+        for migration_file in migration_files:
+            if migration_file.name not in applied:
+                _apply_migration_with_conn(migration_file, connection)
+                connection.execute(
+                    "INSERT INTO schema_migrations (filename) VALUES (%s)",
+                    (migration_file.name,)
+                )
 
 
 def database_health() -> tuple[bool, dict]:
@@ -97,18 +117,22 @@ def get_database_status() -> dict:
     }
 
 
-def _apply_migration(path: Path) -> None:
+def _apply_migration_with_conn(path: Path, connection) -> None:
     script = path.read_text(encoding="utf-8")
     statements = _split_sql_statements(script)
     if not statements:
         return
 
+    for statement in statements:
+        normalized = statement.strip().upper()
+        if normalized in {"BEGIN", "COMMIT"}:
+            continue
+        connection.execute(statement)
+
+def _apply_migration(path: Path) -> None:
+    # Mantido para retrocompatibilidade se algo usar externamente
     with conn() as connection:
-        for statement in statements:
-            normalized = statement.strip().upper()
-            if normalized in {"BEGIN", "COMMIT"}:
-                continue
-            connection.execute(statement)
+        _apply_migration_with_conn(path, connection)
 
 
 def _split_sql_statements(script: str) -> list[str]:
