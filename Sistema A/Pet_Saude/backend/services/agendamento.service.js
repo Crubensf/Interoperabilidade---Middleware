@@ -1,4 +1,11 @@
 import { supabase } from '../supabase.js';
+import {
+  carregarLocaisPorIds,
+  carregarProfissionaisEnriquecidosPorIds,
+  listarLocaisDisponiveis,
+  listarProfissionaisEnriquecidos,
+  resolverLocalAgendamento,
+} from '../utils/supabaseJoinFallback.js';
 
 const CPF_SYSTEM = 'http://rnds.saude.gov.br/fhir/r4/NamingSystem/cpf';
 const CNS_SYSTEM = 'http://rnds.saude.gov.br/fhir/r4/NamingSystem/cns';
@@ -117,7 +124,7 @@ class AgendamentoService {
   }
 
   _practitionerResource(profissional) {
-    const crmValor = this._crmUnificado(profissional.crm, profissional.registro_uf);
+    const crmValor = this._crmUnificado(profissional.crm, profissional.crm_uf || profissional.registro_uf);
     const identifier = crmValor ? [{
       use: 'official',
       type: { coding: [{ system: IDENTIFIER_TYPE_SYSTEM, code: 'PRN', display: 'CRM' }] },
@@ -154,9 +161,15 @@ class AgendamentoService {
     return {
       resourceType: 'Location',
       id: local.id,
-      status: 'active',
+      status: local.ativo === false ? 'inactive' : 'active',
       name: local.nome,
-      address: { text: local.nome, country: 'BR' },
+      ...(local.endereco ? { address: { text: local.endereco, country: 'BR' } } : {}),
+      ...(local.cnes ? {
+        identifier: [{
+          system: 'http://rnds.saude.gov.br/fhir/r4/NamingSystem/cnes',
+          value: String(local.cnes),
+        }],
+      } : {}),
     };
   }
 
@@ -184,20 +197,24 @@ class AgendamentoService {
   async obterBundleFhir(agendamentoId) {
     const { data: ag, error } = await supabase
       .from('agendamentos')
-      .select(`
-        *,
-        paciente:paciente_id (*),
-        profissional:profissional_id (*)
-      `)
+      .select('*')
       .eq('id', agendamentoId)
       .single();
 
     if (error) throw new Error(`Erro no banco de dados: ${error.message}`);
     if (!ag) return null;
 
-    const paciente = ag.paciente;
-    const profissional = ag.profissional;
-    const local = ag.local_atendimento ? { id: `loc-${ag.id}`, nome: ag.local_atendimento } : null;
+    const [pacienteRes, profissionais, locais] = await Promise.all([
+      supabase.from('pacientes').select('*').eq('id', ag.paciente_id).single(),
+      carregarProfissionaisEnriquecidosPorIds([ag.profissional_id]),
+      carregarLocaisPorIds(ag.local_id ? [ag.local_id] : []),
+    ]);
+
+    if (pacienteRes.error) throw new Error(`Erro no banco de dados (paciente): ${pacienteRes.error.message}`);
+
+    const paciente = pacienteRes.data;
+    const profissional = profissionais[0] || null;
+    const local = resolverLocalAgendamento(ag, new Map(locais.map((item) => [item.id, item])));
     if (!paciente || !profissional) {
       throw new Error('Agendamento sem paciente ou profissional associado.');
     }
@@ -221,12 +238,10 @@ class AgendamentoService {
   }
 
   async obterBundleFhirTodos() {
-    const [pacRes, profRes, agRes] = await Promise.all([
+    const [pacRes, profissionais, locais, agRes] = await Promise.all([
       supabase.from('pacientes').select('*').order('nome'),
-      supabase
-        .from('profissionais')
-        .select('*')
-        .order('nome'),
+      listarProfissionaisEnriquecidos(),
+      listarLocaisDisponiveis(),
       supabase
         .from('agendamentos')
         .select('*')
@@ -234,18 +249,17 @@ class AgendamentoService {
         .order('hora_agendamento', { ascending: true }),
     ]);
 
-    for (const [nome, r] of [['pacientes', pacRes], ['profissionais', profRes], ['agendamentos', agRes]]) {
+    for (const [nome, r] of [['pacientes', pacRes], ['agendamentos', agRes]]) {
       if (r.error) throw new Error(`Erro no banco de dados (${nome}): ${r.error.message}`);
     }
 
     const pacientes = pacRes.data || [];
-    const profissionais = profRes.data || [];
-    const locais = [];
     const agendamentos = agRes.data || [];
 
     const pacientesMap = new Map(pacientes.map((p) => [p.id, p]));
     const profMap = new Map(profissionais.map((p) => [p.id, p]));
     const locMap = new Map(locais.map((l) => [l.id, l]));
+    const locaisBundle = new Map(locais.map((l) => [l.id, l]));
 
     const entries = [];
 
@@ -255,18 +269,21 @@ class AgendamentoService {
     for (const p of profissionais) {
       entries.push({ fullUrl: `Practitioner/${p.id}`, resource: this._practitionerResource(p) });
     }
-    for (const l of locais) {
-      entries.push({ fullUrl: `Location/${l.id}`, resource: this._locationResource(l) });
-    }
     for (const ag of agendamentos) {
       const paciente = pacientesMap.get(ag.paciente_id);
       const profissional = profMap.get(ag.profissional_id);
-      const local = ag.local_atendimento ? { id: `loc-${ag.id}`, nome: ag.local_atendimento } : null;
+      const local = resolverLocalAgendamento(ag, locMap);
       if (!paciente || !profissional) continue;
+      if (local && !locaisBundle.has(local.id)) {
+        locaisBundle.set(local.id, local);
+      }
       entries.push({
         fullUrl: `Appointment/${ag.id}`,
         resource: this._appointmentResource(ag, paciente, profissional, local),
       });
+    }
+    for (const local of locaisBundle.values()) {
+      entries.push({ fullUrl: `Location/${local.id}`, resource: this._locationResource(local) });
     }
 
     return {
