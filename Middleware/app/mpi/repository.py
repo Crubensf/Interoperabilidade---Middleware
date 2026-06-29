@@ -200,9 +200,56 @@ def listar_audit(limit: int = 100) -> list[dict]:
         )
 
 
+_AUDIT_NOISE_PATHS = ["/health", "/ready", "/dashboard", "/favicon.ico", "/"]
+
+
 def estatisticas_audit() -> dict:
     with conn() as c:
-        total = c.execute("SELECT COUNT(*) AS n FROM audit_log").fetchone()["n"]
-        erros = c.execute("SELECT COUNT(*) AS n FROM audit_log WHERE status >= 400").fetchone()["n"]
-        media = c.execute("SELECT AVG(duration_ms) AS m FROM audit_log").fetchone()["m"]
-    return {"total": total, "erros": erros, "duracao_media_ms": round(media or 0, 1)}
+        total_geral = c.execute("SELECT COUNT(*) AS n FROM audit_log").fetchone()["n"]
+        row = c.execute(
+            """
+            SELECT
+              COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE status >= 500) AS erros_servidor,
+              COUNT(*) FILTER (WHERE status BETWEEN 400 AND 499) AS rejeicoes_cliente,
+              COUNT(*) FILTER (WHERE status IN (401, 403)) AS nao_autorizado,
+              AVG(duration_ms) AS duracao_media,
+              COUNT(*) FILTER (WHERE ts >= NOW() - INTERVAL '1 hour') AS ultimo_hora,
+              COUNT(*) FILTER (
+                WHERE ts >= NOW() - INTERVAL '1 hour' AND status >= 500
+              ) AS erros_servidor_hora
+            FROM audit_log
+            WHERE path <> ALL(%s)
+              AND path NOT LIKE '/static/%%'
+            """,
+            (_AUDIT_NOISE_PATHS,),
+        ).fetchone()
+
+    total = int(row["total"] or 0)
+    erros_servidor = int(row["erros_servidor"] or 0)
+    rejeicoes_cliente = int(row["rejeicoes_cliente"] or 0)
+    nao_autorizado = int(row["nao_autorizado"] or 0)
+    media = round(row["duracao_media"] or 0, 1)
+    ultimo_hora = int(row["ultimo_hora"] or 0)
+    erros_servidor_hora = int(row["erros_servidor_hora"] or 0)
+
+    def _pct(numer: int, denom: int) -> float:
+        return round((numer / denom) * 100, 1) if denom else 0.0
+
+    return {
+        "total": total,
+        "total_geral_inclui_health": int(total_geral or 0),
+        "erros_servidor": erros_servidor,
+        "rejeicoes_cliente": rejeicoes_cliente,
+        "nao_autorizado": nao_autorizado,
+        "taxa_erro_servidor_pct": _pct(erros_servidor, total),
+        "taxa_rejeicao_cliente_pct": _pct(rejeicoes_cliente, total),
+        "duracao_media_ms": media,
+        "janela_1h": {
+            "requisicoes": ultimo_hora,
+            "erros_servidor": erros_servidor_hora,
+            "taxa_erro_pct": _pct(erros_servidor_hora, ultimo_hora),
+        },
+        # campo legado pra compat com chamadas antigas; agora reflete só erros de servidor.
+        "erros": erros_servidor,
+    }

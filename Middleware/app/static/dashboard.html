@@ -38,7 +38,8 @@
     <div class="sidebar-group">Visão</div>
     <nav class="stagger">
       <button class="nav-btn" style="--i:0" data-tab="visao"><i data-lucide="layout-dashboard" class="icon"></i> Visão geral</button>
-      <button class="nav-btn" style="--i:1" data-tab="audit"><i data-lucide="scroll-text" class="icon"></i> Audit log</button>
+      <button class="nav-btn" style="--i:1" data-tab="analytics"><i data-lucide="bar-chart-3" class="icon"></i> Analytics clínicos</button>
+      <button class="nav-btn" style="--i:2" data-tab="audit"><i data-lucide="scroll-text" class="icon"></i> Audit log</button>
     </nav>
 
     <div class="sidebar-group">Recursos clínicos</div>
@@ -166,6 +167,100 @@
               <span class="badge">tempo real</span>
             </div>
             <div class="ops-list" id="ops-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ANALYTICS CLÍNICOS ============ -->
+      <section data-section="analytics" class="section hidden">
+        <div class="filterbar">
+          <div class="field"><label>Origem</label>
+            <select id="anl-origem"><option>ambos</option><option>sistema_a</option><option>sistema_b</option></select>
+          </div>
+          <div class="field"><label>Data ≥</label><input id="anl-ge" type="date" /></div>
+          <div class="field"><label>Data ≤</label><input id="anl-le" type="date" /></div>
+          <button id="anl-search" class="btn btn-primary"><i data-lucide="refresh-cw" class="icon"></i> Atualizar</button>
+          <div class="right"><span id="anl-total" class="meta">—</span></div>
+        </div>
+
+        <div class="metric-strip mb-4">
+          <div class="metric metric-vital">
+            <div class="metric-label"><i data-lucide="check-circle-2" class="icon"></i> Realizados</div>
+            <div class="metric-value tabular" id="anl-kpi-realizado">—</div>
+            <div class="metric-sub">fulfilled + arrived + checked-in</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="x-circle" class="icon"></i> Cancelamento</div>
+            <div class="metric-value tabular" id="anl-kpi-cancelado">—</div>
+            <div class="metric-sub">cancelled + entered-in-error</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="user-x" class="icon"></i> No-show</div>
+            <div class="metric-value tabular" id="anl-kpi-noshow">—</div>
+            <div class="metric-sub">paciente faltou sem aviso</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label"><i data-lucide="calendar-days" class="icon"></i> Agendamentos</div>
+            <div class="metric-value tabular" id="anl-kpi-total">—</div>
+            <div class="metric-sub">no recorte selecionado</div>
+          </div>
+        </div>
+
+        <div class="bento mb-4">
+          <div class="chart-card span-2">
+            <div class="chart-head">
+              <div><div class="chart-title">Distribuição por status</div>
+                <div class="chart-meta">share de cada status FHIR</div></div>
+            </div>
+            <canvas id="anl-chart-status" height="200"></canvas>
+          </div>
+          <div class="chart-card span-4">
+            <div class="chart-head">
+              <div><div class="chart-title">Tendência diária (30 dias)</div>
+                <div class="chart-meta">agendamentos por data de início</div></div>
+            </div>
+            <canvas id="anl-chart-tendencia" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="bento mb-4">
+          <div class="chart-card span-3">
+            <div class="chart-head">
+              <div><div class="chart-title">Top profissionais</div>
+                <div class="chart-meta">por nº de agendamentos</div></div>
+            </div>
+            <canvas id="anl-chart-prof" height="240"></canvas>
+          </div>
+          <div class="chart-card span-3">
+            <div class="chart-head">
+              <div><div class="chart-title">Top tipos de consulta</div>
+                <div class="chart-meta">appointmentType / procedimento</div></div>
+            </div>
+            <canvas id="anl-chart-tipo" height="240"></canvas>
+          </div>
+        </div>
+
+        <div class="bento">
+          <div class="chart-card span-2">
+            <div class="chart-head">
+              <div><div class="chart-title">Top locais</div>
+                <div class="chart-meta">unidade de atendimento</div></div>
+            </div>
+            <canvas id="anl-chart-local" height="220"></canvas>
+          </div>
+          <div class="chart-card span-2">
+            <div class="chart-head">
+              <div><div class="chart-title">Por dia da semana</div>
+                <div class="chart-meta">demanda semanal</div></div>
+            </div>
+            <canvas id="anl-chart-dia" height="220"></canvas>
+          </div>
+          <div class="chart-card span-2">
+            <div class="chart-head">
+              <div><div class="chart-title">Por hora do dia</div>
+                <div class="chart-meta">picos de agenda</div></div>
+            </div>
+            <canvas id="anl-chart-hora" height="220"></canvas>
           </div>
         </div>
       </section>

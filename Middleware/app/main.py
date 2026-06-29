@@ -25,6 +25,7 @@ from app.rotas.escrita import router as escrita_router
 from app.rotas.fhir_escrita import router as fhir_escrita_router
 from app.rotas.dashboard import router as dashboard_router
 from app.rotas.detalhe import router as detalhe_router
+from app.rotas.estatisticas import router as estatisticas_router
 
 
 @asynccontextmanager
@@ -140,6 +141,7 @@ app.include_router(agendamentos_router)
 app.include_router(bundle_router)
 app.include_router(metadata_router)
 app.include_router(qualidade_router)
+app.include_router(estatisticas_router)
 app.include_router(dashboard_router)
 
 

@@ -86,24 +86,34 @@ async function loadVisao() {
   document.getElementById("n-agend").textContent = ag.total;
   document.getElementById("n-dups").textContent = dups.totais.pacientes + dups.totais.profissionais;
 
-  const erroRate = auditStats.total ? ((auditStats.erros / auditStats.total) * 100).toFixed(1) : "0.0";
-  const erroCls = auditStats.erros ? "danger" : "vital";
+  const total = auditStats.total ?? 0;
+  const erros5xx = auditStats.erros_servidor ?? 0;
+  const rej4xx = auditStats.rejeicoes_cliente ?? 0;
+  const naoAutorizado = auditStats.nao_autorizado ?? 0;
+  const taxaErro = auditStats.taxa_erro_servidor_pct ?? 0;
+  const janela1h = auditStats.janela_1h || { requisicoes: 0, erros_servidor: 0, taxa_erro_pct: 0 };
+
+  const erroCls = erros5xx ? "danger" : "vital";
   document.getElementById("ops-list").innerHTML = `
     <div class="ops-row">
-      <div class="ops-key"><i data-lucide="activity" class="icon"></i> Requisições</div>
-      <div class="ops-val tabular">${auditStats.total}</div>
+      <div class="ops-key"><i data-lucide="activity" class="icon"></i> Requisições úteis</div>
+      <div class="ops-val tabular">${total}</div>
     </div>
     <div class="ops-row">
-      <div class="ops-key"><i data-lucide="alert-circle" class="icon"></i> Taxa de erro</div>
-      <div class="ops-val tabular ${erroCls}">${erroRate}%</div>
+      <div class="ops-key"><i data-lucide="alert-octagon" class="icon"></i> Taxa de erro (5xx)</div>
+      <div class="ops-val tabular ${erroCls}">${taxaErro}%</div>
     </div>
     <div class="ops-row">
       <div class="ops-key"><i data-lucide="zap" class="icon"></i> Latência média</div>
       <div class="ops-val tabular">${auditStats.duracao_media_ms} <span class="muted text-xs">ms</span></div>
     </div>
     <div class="ops-row">
-      <div class="ops-key"><i data-lucide="bug" class="icon"></i> Erros (4xx + 5xx)</div>
-      <div class="ops-val tabular ${auditStats.erros ? "danger" : ""}">${auditStats.erros}</div>
+      <div class="ops-key"><i data-lucide="shield-off" class="icon"></i> Rejeições 4xx</div>
+      <div class="ops-val tabular ${rej4xx ? "warn" : ""}" title="Inclui ${naoAutorizado} de 401/403">${rej4xx}</div>
+    </div>
+    <div class="ops-row">
+      <div class="ops-key"><i data-lucide="clock" class="icon"></i> Última 1h</div>
+      <div class="ops-val tabular">${janela1h.requisicoes} <span class="muted text-xs">req · ${janela1h.taxa_erro_pct}% erro</span></div>
     </div>`;
 
   const counts = {};
@@ -399,6 +409,160 @@ document.getElementById("form-criar").addEventListener("submit", async (ev) => {
 });
 
 // =====================================================================
+// Analytics clínicos
+// =====================================================================
+const anlCharts = {};
+
+function _cssVar(name, fallback) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+function _palette() {
+  return {
+    accent: _cssVar("--accent", "#1E3A8A"),
+    vital:  _cssVar("--vital",  "#15803D"),
+    warn:   _cssVar("--warn",   "#B45309"),
+    danger: _cssVar("--danger", "#B91C1C"),
+    text3:  _cssVar("--text-3", "#94A3B8"),
+    border: _cssVar("--border-soft", "rgba(203,213,225,0.32)"),
+  };
+}
+
+function _statusColor(status, p) {
+  if (["fulfilled", "arrived", "checked-in"].includes(status)) return p.vital;
+  if (["cancelled", "entered-in-error"].includes(status)) return p.danger;
+  if (status === "noshow") return p.warn;
+  return p.accent;
+}
+
+function _destroyChart(key) {
+  if (anlCharts[key]) { anlCharts[key].destroy(); delete anlCharts[key]; }
+}
+
+function _baseOpts(p) {
+  return {
+    animation: { duration: 500, easing: "easeOutCubic" },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1C1917", padding: 10, cornerRadius: 8,
+        titleFont: { family: "Geist", size: 12, weight: "500" },
+        bodyFont: { family: "Geist Mono", size: 11 },
+      },
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: p.border, drawBorder: false }, ticks: { color: p.text3, precision: 0, font: { family: "Geist Mono", size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: p.text3, font: { family: "Geist Mono", size: 10 } } },
+    },
+  };
+}
+
+function _barHorizontal(canvasId, items, color) {
+  const p = _palette();
+  _destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  anlCharts[canvasId] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: items.map(i => i.rotulo.length > 28 ? i.rotulo.slice(0, 27) + "…" : i.rotulo),
+      datasets: [{ data: items.map(i => i.total), backgroundColor: color, borderRadius: 4, maxBarThickness: 16 }],
+    },
+    options: { ..._baseOpts(p), indexAxis: "y" },
+  });
+}
+
+function _barVertical(canvasId, labels, values, color) {
+  const p = _palette();
+  _destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  anlCharts[canvasId] = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 4, maxBarThickness: 18 }] },
+    options: _baseOpts(p),
+  });
+}
+
+async function loadAnalytics() {
+  const q = new URLSearchParams({ origem: document.getElementById("anl-origem").value });
+  const ge = document.getElementById("anl-ge").value; if (ge) q.set("date_ge", ge);
+  const le = document.getElementById("anl-le").value; if (le) q.set("date_le", le);
+
+  let data;
+  try {
+    data = await api(`/estatisticas/agendamentos?${q}`);
+  } catch (e) {
+    document.getElementById("anl-total").textContent = "Erro ao carregar";
+    return;
+  }
+
+  const p = _palette();
+  const total = data.total ?? 0;
+  document.getElementById("anl-total").textContent = `${total} agendamento(s)`;
+  document.getElementById("anl-kpi-total").textContent = total;
+  document.getElementById("anl-kpi-realizado").textContent = `${data.status.taxa_realizado_pct}%`;
+  document.getElementById("anl-kpi-cancelado").textContent = `${data.status.taxa_cancelamento_pct}%`;
+  document.getElementById("anl-kpi-noshow").textContent = `${data.status.taxa_noshow_pct}%`;
+
+  // ---- Distribuição por status (doughnut) ----
+  _destroyChart("anl-chart-status");
+  const statusItems = data.status.items;
+  const ctxStatus = document.getElementById("anl-chart-status");
+  anlCharts["anl-chart-status"] = new Chart(ctxStatus, {
+    type: "doughnut",
+    data: {
+      labels: statusItems.map(s => s.status),
+      datasets: [{
+        data: statusItems.map(s => s.total),
+        backgroundColor: statusItems.map(s => _statusColor(s.status, p)),
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      animation: { duration: 500 },
+      cutout: "62%",
+      plugins: {
+        legend: { position: "bottom", labels: { color: p.text3, font: { family: "Geist", size: 11 }, boxWidth: 10 } },
+        tooltip: { backgroundColor: "#1C1917", padding: 10, cornerRadius: 8,
+          callbacks: { label: (c) => {
+            const item = statusItems[c.dataIndex];
+            return ` ${item.status}: ${item.total} (${item.pct}%)`;
+          }} },
+      },
+    },
+  });
+
+  // ---- Tendência 30d (line) ----
+  _destroyChart("anl-chart-tendencia");
+  const tend = data.tendencia_30d;
+  const ctxTend = document.getElementById("anl-chart-tendencia");
+  anlCharts["anl-chart-tendencia"] = new Chart(ctxTend, {
+    type: "line",
+    data: {
+      labels: tend.map(t => t.data.slice(5)), // MM-DD
+      datasets: [{
+        data: tend.map(t => t.total),
+        borderColor: p.accent, backgroundColor: p.accent + "20",
+        tension: 0.3, fill: true, borderWidth: 2, pointRadius: 2,
+      }],
+    },
+    options: _baseOpts(p),
+  });
+
+  // ---- Top profissionais / tipos / locais (horizontal bars) ----
+  _barHorizontal("anl-chart-prof",  data.top_profissionais, p.accent);
+  _barHorizontal("anl-chart-tipo",  data.top_tipos,         p.vital);
+  _barHorizontal("anl-chart-local", data.top_locais,        p.warn);
+
+  // ---- Dia da semana / hora do dia (vertical bars) ----
+  _barVertical("anl-chart-dia",  data.por_dia_semana.map(d => d.dia),  data.por_dia_semana.map(d => d.total), p.accent);
+  _barVertical("anl-chart-hora", data.por_hora_dia.map(d => `${d.hora}h`), data.por_hora_dia.map(d => d.total), p.vital);
+
+  reinitIcons();
+}
+
+document.getElementById("anl-search").addEventListener("click", loadAnalytics);
+
+// =====================================================================
 // Audit
 // =====================================================================
 async function loadAudit() {
@@ -622,7 +786,7 @@ function renderDetalhe(data) {
 // Boot
 // =====================================================================
 const loaders = {
-  visao: loadVisao, pacientes: loadPacientes, profissionais: loadProf,
+  visao: loadVisao, analytics: loadAnalytics, pacientes: loadPacientes, profissionais: loadProf,
   agendamentos: loadAg, duplicatas: loadDuplicatas, qualidade: loadQualidade,
   mpi: loadMpi, bundle: () => {}, criar: () => {}, audit: loadAudit,
 };
