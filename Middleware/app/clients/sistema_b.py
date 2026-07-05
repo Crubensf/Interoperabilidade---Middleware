@@ -16,10 +16,16 @@ class SistemaBClient:
         self._token: str | None = None
         self._lock = asyncio.Lock()
 
+    def _base_headers(self) -> dict[str, str]:
+        h: dict[str, str] = {}
+        if settings.SISTEMA_B_API_KEY:
+            h["X-API-Key"] = settings.SISTEMA_B_API_KEY
+        return h
+
     async def _login(self) -> str:
         payload = {"email": settings.SISTEMA_B_EMAIL, "senha": settings.SISTEMA_B_SENHA}
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(f"{self.base_url}/api/auth/login", json=payload)
+            resp = await client.post(f"{self.base_url}/api/auth/login", json=payload, headers=self._base_headers())
             resp.raise_for_status()
             data = resp.json()
             token = data.get("access_token")
@@ -38,15 +44,17 @@ class SistemaBClient:
     async def _get(self, path: str, retry_on_401: bool = True) -> Any:
         async def _do():
             token = await self._ensure_token()
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = self._base_headers()
+            headers["Authorization"] = f"Bearer {token}"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.get(f"{self.base_url}{path}", headers=headers)
                 if resp.status_code == 401 and retry_on_401:
                     self._token = None
                     token2 = await self._ensure_token()
+                    headers["Authorization"] = f"Bearer {token2}"
                     resp = await client.get(
                         f"{self.base_url}{path}",
-                        headers={"Authorization": f"Bearer {token2}"},
+                        headers=headers,
                     )
                 resp.raise_for_status()
                 return resp.json()
@@ -57,7 +65,8 @@ class SistemaBClient:
 
     async def _post(self, path: str, payload: dict, retry_on_401: bool = True) -> Any:
         token = await self._ensure_token()
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = self._base_headers()
+        headers["Authorization"] = f"Bearer {token}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(f"{self.base_url}{path}", json=payload, headers=headers)
             if resp.status_code == 401 and retry_on_401:
@@ -78,7 +87,7 @@ class SistemaBClient:
     async def health(self) -> bool:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"{self.base_url}/")
+                resp = await client.get(f"{self.base_url}/", headers=self._base_headers())
                 resp.raise_for_status()
             return True
         except Exception:

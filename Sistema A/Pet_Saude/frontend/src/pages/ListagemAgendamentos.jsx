@@ -147,8 +147,8 @@ const ListagemAgendamentos = () => {
     const statusConfig = {
       agendado: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
       confirmado: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Confirmado' },
-      em_atendimento: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Em Atendimento' },
-      realizado: { bg: 'bg-green-100', text: 'text-green-800', label: 'Realizado' },
+      em_andamento: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Em Andamento' },
+      atendido: { bg: 'bg-green-100', text: 'text-green-800', label: 'Atendido' },
       cancelado: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelado' },
       faltou: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Faltou' },
     };
@@ -232,8 +232,8 @@ const ListagemAgendamentos = () => {
                 <option value="">Todos os status</option>
                 <option value="agendado">Agendado</option>
                 <option value="confirmado">Confirmado</option>
-                <option value="em_atendimento">Em Atendimento</option>
-                <option value="realizado">Realizado</option>
+                <option value="em_andamento">Em Andamento</option>
+                <option value="atendido">Atendido</option>
                 <option value="cancelado">Cancelado</option>
                 <option value="faltou">Faltou</option>
               </select>
@@ -526,8 +526,8 @@ const ListagemAgendamentos = () => {
                 {[
                   'agendado',
                   'confirmado',
-                  'em_atendimento',
-                  'realizado',
+                  'em_andamento',
+                  'atendido',
                   'cancelado',
                   'faltou',
                 ].map((status) => (

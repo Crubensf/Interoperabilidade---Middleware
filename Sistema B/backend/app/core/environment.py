@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    API_KEY: str | None = None
 
     # Usuário admin criado automaticamente no primeiro boot, se não existir.
     # Necessário para o middleware autenticar (ele faz login com essas credenciais).

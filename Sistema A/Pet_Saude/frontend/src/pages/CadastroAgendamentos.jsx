@@ -356,8 +356,8 @@ const CadastroAgendamentos = () => {
                 <select className="input-field" {...register('status')}>
                   <option value="agendado">Agendado</option>
                   <option value="confirmado">Confirmado</option>
-                  <option value="em_atendimento">Em Atendimento</option>
-                  <option value="realizado">Realizado</option>
+                  <option value="em_andamento">Em Andamento</option>
+                  <option value="atendido">Atendido</option>
                   <option value="cancelado">Cancelado</option>
                   <option value="faltou">Paciente Faltou</option>
                 </select>

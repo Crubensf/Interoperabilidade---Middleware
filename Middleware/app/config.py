@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SISTEMA_A_BASE_URL: str = "http://localhost:5050"
     SISTEMA_A_API_KEY: str = ""
     SISTEMA_B_BASE_URL: str = "http://localhost:8000"
+    SISTEMA_B_API_KEY: str = ""
 
     SISTEMA_B_EMAIL: str = ""
     SISTEMA_B_SENHA: str = ""

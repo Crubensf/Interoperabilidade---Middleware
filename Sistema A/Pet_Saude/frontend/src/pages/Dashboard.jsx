@@ -53,7 +53,8 @@ const Dashboard = () => {
       const consultasDodia = agendamentos.filter(
         (a) => a.data_agendamento === hoje
       );
-      const realizadas = agendamentos.filter((a) => a.status === 'realizado');
+      const confirmadas = agendamentos.filter((a) => a.status === 'confirmado');
+      const realizadas = agendamentos.filter((a) => a.status === 'atendido');
       const canceladas = agendamentos.filter(
         (a) => a.status === 'cancelado' || a.status === 'faltou'
       );
@@ -80,8 +81,8 @@ const Dashboard = () => {
       const statusCount = {
         agendado: 0,
         confirmado: 0,
-        em_atendimento: 0,
-        realizado: 0,
+        em_andamento: 0,
+        atendido: 0,
         cancelado: 0,
         faltou: 0,
       };
@@ -166,8 +167,8 @@ const Dashboard = () => {
     const labels = {
       agendado: 'Agendado',
       confirmado: 'Confirmado',
-      em_atendimento: 'Em Atendimento',
-      realizado: 'Realizado',
+      em_andamento: 'Em Andamento',
+      atendido: 'Atendido',
       cancelado: 'Cancelado',
       faltou: 'Faltou',
     };
@@ -176,10 +177,10 @@ const Dashboard = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      agendado: 'bg-blue-500',
-      confirmado: 'bg-purple-500',
-      em_atendimento: 'bg-yellow-500',
-      realizado: 'bg-green-500',
+      agendado: 'bg-purple-500',
+      confirmado: 'bg-blue-500',
+      em_andamento: 'bg-yellow-500',
+      atendido: 'bg-green-500',
       cancelado: 'bg-red-500',
       faltou: 'bg-gray-500',
     };

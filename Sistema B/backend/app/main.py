@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 import asyncio
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.environment import settings
 from app.core.database import Base, engine
@@ -30,6 +31,25 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.API_TITLE, lifespan=lifespan)
+
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    expected = settings.API_KEY
+    if not expected:
+        return await call_next(request)
+
+    # Allow public paths and auth endpoint to pass without API key
+    if request.url.path in {"/", "/docs", "/openapi.json", "/api/auth/login", "/api/dashboard/resumo"}:
+        return await call_next(request)
+
+    provided = request.headers.get("x-api-key")
+    if provided and provided == expected:
+        return await call_next(request)
+
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": "API key ausente ou inválida."},
+    )
 
 if settings.CORS_ORIGINS.strip() == "*":
     origins = ["*"]
