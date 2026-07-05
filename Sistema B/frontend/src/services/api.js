@@ -99,9 +99,7 @@ async function request(path, { method = "GET", body, headers } = {}) {
   
   if (res.status === 401) {
     localStorage.removeItem("access_token");
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
+    // Removido o window.location.href para não recarregar a página e não causar 404
     throw new Error(buildErrorMessage(res, data));
   }
 
