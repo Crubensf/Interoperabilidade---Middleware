@@ -61,7 +61,7 @@ function activate(tab) {
 let chartTrafego = null;
 async function loadVisao() {
   const [health, pac, prof, ag, dups, auditStats, audit] = await Promise.all([
-    api("/health"),
+    fetch("/ready").then(r => r.json()).catch(() => ({ sistema_a: "down", sistema_b: "down" })),
     api("/pacientes?_count=1"),
     api("/profissionais?_count=1"),
     api("/agendamentos?_count=1"),
