@@ -348,7 +348,6 @@ const EdicaoAgendamentos = () => {
                 <input
                   type="date"
                   className={`input-field ${errors.data_agendamento ? 'border-red-500' : ''}`}
-                  min={new Date().toISOString().split('T')[0]}
                   {...register('data_agendamento', { required: 'Data é obrigatória' })}
                 />
                 {errors.data_agendamento && <p className="mt-1 text-sm text-red-500">{errors.data_agendamento.message}</p>}
