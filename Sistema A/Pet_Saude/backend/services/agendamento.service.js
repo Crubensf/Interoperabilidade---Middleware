@@ -22,6 +22,8 @@ const STATUS_MAP = {
   pendente: 'pending',
   cancelado: 'cancelled',
   atendido: 'fulfilled',
+  concluido: 'fulfilled',
+  'concluído': 'fulfilled',
   em_andamento: 'arrived',
   faltou: 'noshow',
   noshow: 'noshow',
