@@ -23,7 +23,7 @@ class SistemaBClient:
         return h
 
     async def _login(self) -> str:
-        payload = {"email": settings.SISTEMA_B_EMAIL, "senha": settings.SISTEMA_B_SENHA}
+        payload = {"email": settings.SISTEMA_B_EMAIL.strip(), "senha": settings.SISTEMA_B_SENHA.strip()}
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(f"{self.base_url}/api/auth/login", json=payload, headers=self._base_headers())
             resp.raise_for_status()
