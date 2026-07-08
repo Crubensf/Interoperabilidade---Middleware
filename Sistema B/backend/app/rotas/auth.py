@@ -35,7 +35,6 @@ def signup(payload: UsuarioCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    print(f"LOGIN ATTEMPT: email='{payload.email}' senha='{payload.senha}'")
     usuario = db.scalar(select(Usuario).where(Usuario.email == payload.email))
     if not usuario or not verify_password(payload.senha, usuario.senha_hash):
         raise HTTPException(status_code=401, detail="E-mail ou senha inválidos.")
