@@ -38,6 +38,8 @@ APPOINTMENT_STATUS_MAP_PT = {
     "pendente": "pending",
     "cancelado": "cancelled",
     "atendido": "fulfilled",
+    "concluido": "fulfilled",
+    "concluído": "fulfilled",
     "em_andamento": "arrived",
     "em andamento": "arrived",
     "faltou": "noshow",

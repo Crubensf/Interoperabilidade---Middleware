@@ -483,6 +483,9 @@ function _barVertical(canvasId, labels, values, color) {
   });
 }
 
+const statusPt = { booked: "Agendado", pending: "Pendente", arrived: "Em andamento", fulfilled: "Realizado", cancelled: "Cancelado", noshow: "Falta", "checked-in": "Check-in", "entered-in-error": "Erro" };
+const txStatus = (s) => statusPt[s] || s;
+
 async function loadAnalytics() {
   const q = new URLSearchParams({ origem: document.getElementById("anl-origem").value });
   const ge = document.getElementById("anl-ge").value; if (ge) q.set("date_ge", ge);
@@ -511,7 +514,7 @@ async function loadAnalytics() {
   anlCharts["anl-chart-status"] = new Chart(ctxStatus, {
     type: "doughnut",
     data: {
-      labels: statusItems.map(s => s.status),
+      labels: statusItems.map(s => txStatus(s.status)),
       datasets: [{
         data: statusItems.map(s => s.total),
         backgroundColor: statusItems.map(s => _statusColor(s.status, p)),
@@ -526,7 +529,7 @@ async function loadAnalytics() {
         tooltip: { backgroundColor: "#1C1917", padding: 10, cornerRadius: 8,
           callbacks: { label: (c) => {
             const item = statusItems[c.dataIndex];
-            return ` ${item.status}: ${item.total} (${item.pct}%)`;
+            return ` ${txStatus(item.status)}: ${item.total} (${item.pct}%)`;
           }} },
       },
     },
