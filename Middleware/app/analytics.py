@@ -34,7 +34,8 @@ def _parse_inicio(valor: str | None) -> datetime | None:
 def _normalizar_label(valor: str | None) -> str:
     if not valor:
         return "(sem informação)"
-    return str(valor).strip() or "(sem informação)"
+    s = str(valor).strip()
+    return s.title() if s else "(sem informação)"
 
 
 def _pct(numer: int, denom: int) -> float:
