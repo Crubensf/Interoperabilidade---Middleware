@@ -35,14 +35,18 @@ def analisar_qualidade(entries: list[dict]) -> dict:
         origem = _origem(r)
 
         if rt == "Patient":
-            nome = (r.get("name") or [{}])[0].get("text") or "?"
+            nomes_raw = r.get("name") or [{}]
+            nome_obj = nomes_raw[0] if isinstance(nomes_raw[0], dict) else {"text": str(nomes_raw[0])}
+            nome = nome_obj.get("text") or "?"
             if not _identifier_value(r, CNS_SYSTEM):
                 pacientes_sem_cns.append({"id": r.get("id"), "nome": nome, "origem": origem})
             if not _identifier_value(r, CPF_SYSTEM):
                 pacientes_sem_cpf.append({"id": r.get("id"), "nome": nome, "origem": origem})
 
         elif rt == "Practitioner":
-            nome = (r.get("name") or [{}])[0].get("text") or "?"
+            nomes_raw = r.get("name") or [{}]
+            nome_obj = nomes_raw[0] if isinstance(nomes_raw[0], dict) else {"text": str(nomes_raw[0])}
+            nome = nome_obj.get("text") or "?"
             crm = _identifier_value(r, CRM_SYSTEM)
             if not crm:
                 profissionais_sem_crm.append({"id": r.get("id"), "nome": nome, "origem": origem})
@@ -100,7 +104,9 @@ def listar_duplicatas(entries: list[dict]) -> dict:
         origem = _origem(r)
         if not origem:
             continue
-        nome = (r.get("name") or [{}])[0].get("text") or "?"
+        nomes_raw = r.get("name") or [{}]
+        nome_obj = nomes_raw[0] if isinstance(nomes_raw[0], dict) else {"text": str(nomes_raw[0])}
+        nome = nome_obj.get("text") or "?"
 
         if r.get("resourceType") == "Patient":
             chave = None
