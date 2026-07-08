@@ -24,6 +24,7 @@ const STATUS_MAP = {
   atendido: 'fulfilled',
   concluido: 'fulfilled',
   'concluído': 'fulfilled',
+  realizado: 'fulfilled',
   em_andamento: 'arrived',
   faltou: 'noshow',
   noshow: 'noshow',

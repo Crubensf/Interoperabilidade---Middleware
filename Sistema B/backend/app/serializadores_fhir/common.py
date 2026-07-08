@@ -40,6 +40,7 @@ APPOINTMENT_STATUS_MAP_PT = {
     "atendido": "fulfilled",
     "concluido": "fulfilled",
     "concluído": "fulfilled",
+    "realizado": "fulfilled",
     "em_andamento": "arrived",
     "em andamento": "arrived",
     "faltou": "noshow",
