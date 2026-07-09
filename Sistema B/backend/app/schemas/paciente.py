@@ -31,9 +31,9 @@ class PacienteBase(BaseModel):
     telefone: str = Field(min_length=10, max_length=11)
 
     data_nascimento: date
-    municipio: str = Field(min_length=2, max_length=120)
-    endereco: str = Field(min_length=2, max_length=200)
-    nome_mae: str = Field(min_length=2, max_length=140)
+    municipio: Optional[str] = Field(default="Não informado", min_length=2, max_length=120)
+    endereco: Optional[str] = Field(default="Não informado", min_length=2, max_length=200)
+    nome_mae: Optional[str] = Field(default="Não informado", min_length=2, max_length=140)
 
     # ---------- CPF ----------
     @field_validator("cpf", mode="before")

@@ -59,9 +59,12 @@ app.get('/pacientes/:id', async (req, res) => {
 
 app.post('/pacientes', async (req, res) => {
   try {
-    const { nome, cartao_sus } = req.body;
-    if (!nome || !cartao_sus) {
-      return sendError(res, 400, 'required', 'Nome e Cartão SUS são obrigatórios.');
+    const { nome, cartao_sus, cpf } = req.body;
+    if (!nome) {
+      return sendError(res, 400, 'required', 'Nome é obrigatório.');
+    }
+    if (!cartao_sus && !cpf) {
+      return sendError(res, 400, 'required', 'Cartão SUS ou CPF são obrigatórios.');
     }
     const { data, error } = await supabase.from('pacientes').insert([req.body]).select().single();
     if (error) throw error;
