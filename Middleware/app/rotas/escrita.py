@@ -58,7 +58,6 @@ def _erro_externo(destino: str, exc: Exception):
 # =====================================================================
 router = APIRouter(
     tags=["Escrita"],
-    dependencies=[Depends(require_api_key())],
 )
 
 

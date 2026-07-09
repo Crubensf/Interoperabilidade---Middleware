@@ -394,14 +394,13 @@ document.getElementById("form-criar").addEventListener("submit", async (ev) => {
   const form = ev.target;
   const data = Object.fromEntries(new FormData(form).entries());
   const destino = data.destino; delete data.destino;
-  const apiKey = data.api_key; delete data.api_key;
   Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
   const out = document.getElementById("criar-resultado");
   out.textContent = "Enviando…";
   try {
     const r = await fetch("/pacientes", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Sistema-Destino": destino, "X-API-Key": apiKey },
+      headers: { "Content-Type": "application/json", "X-Sistema-Destino": destino },
       body: JSON.stringify(data),
     });
     const j = await r.json();
