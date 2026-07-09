@@ -387,14 +387,44 @@ document.getElementById("bundle-copy").addEventListener("click", () => {
 });
 
 // =====================================================================
+// Dinâmica de Formulários
+// =====================================================================
+document.querySelectorAll(".destino-select").forEach(sel => {
+  sel.addEventListener("change", (e) => {
+    const destino = e.target.value;
+    const form = e.target.closest("form");
+    
+    if (destino === "sistema_a") {
+      form.querySelectorAll(".only-sys-a").forEach(el => el.classList.remove("hidden"));
+      form.querySelectorAll(".only-sys-b").forEach(el => el.classList.add("hidden"));
+    } else {
+      form.querySelectorAll(".only-sys-b").forEach(el => el.classList.remove("hidden"));
+      form.querySelectorAll(".only-sys-a").forEach(el => el.classList.add("hidden"));
+    }
+  });
+});
+
+function cleanFormData(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  
+  // Remover os campos que estão contidos em divs "hidden" (não pertencem ao sistema)
+  form.querySelectorAll(".hidden input, .hidden select").forEach(el => {
+    if (el.name) delete data[el.name];
+  });
+  
+  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+  return data;
+}
+
+// =====================================================================
 // Criar paciente
 // =====================================================================
 document.getElementById("form-criar").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const form = ev.target;
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
-  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+  
   const out = document.getElementById("criar-resultado");
   out.textContent = "Enviando…";
   try {
@@ -414,9 +444,9 @@ document.getElementById("form-criar").addEventListener("submit", async (ev) => {
 document.getElementById("form-criar-profissional").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const form = ev.target;
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
-  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+  
   const out = document.getElementById("criar-prof-resultado");
   out.textContent = "Enviando…";
   try {
@@ -436,9 +466,8 @@ document.getElementById("form-criar-profissional").addEventListener("submit", as
 document.getElementById("form-criar-agendamento").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const form = ev.target;
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
-  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
   
   // Converter os ids para número (se existirem na string original do formData)
   if (data.paciente_id) data.paciente_id = parseInt(data.paciente_id, 10);

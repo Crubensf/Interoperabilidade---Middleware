@@ -18,30 +18,60 @@ class PacienteEntrada(BaseModel):
     email: str | None = None
     data_nascimento: str | None = Field(None, description="YYYY-MM-DD")
     sexo: str | None = Field(None, pattern="^[MFOmfo]$|^(masculino|feminino|outro|male|female|other)$")
+    nome_mae: str | None = None
+    
+    # Exclusivos Sistema A (Endereço Completo)
+    cep: str | None = None
+    logradouro: str | None = None
+    numero: str | None = None
+    complemento: str | None = None
+    bairro: str | None = None
+    cidade: str | None = None
+    estado: str | None = None
+    
+    # Exclusivos Sistema B (Endereço Simplificado)
     municipio: str | None = None
     endereco: str | None = None
-    nome_mae: str | None = None
 
 
 class ProfissionalEntrada(BaseModel):
     nome: str = Field(..., min_length=2)
-    crm: str = Field(..., min_length=1)
-    crm_uf: str | None = Field(None, min_length=2, max_length=2)
-    especialidade: str | None = None
     telefone: str | None = None
     email: str | None = None
     tipo_atendimento: str | None = None
+    
+    # Especialidade (Em A e B)
+    especialidade: str | None = None
+    especialidade_id: int | None = None
+    
+    # Registro A
+    conselho: str | None = None
+    registro_uf: str | None = None
+    observacoes: str | None = None
+    
+    # Registro B
+    crm: str | None = None
+    crm_uf: str | None = Field(None, min_length=2, max_length=2)
 
 
 class AgendamentoEntrada(BaseModel):
-    paciente_id: int
-    profissional_id: int
-    local_id: int
-    data: str = Field(..., description="YYYY-MM-DD")
-    hora: str = Field(..., description="HH:MM")
-    status: str | None = Field(None, description="agendado, pending, etc")
-    modalidade: str | None = None
+    paciente_id: str | int
+    profissional_id: str | int
+    
+    # Sistema A
+    local_atendimento: str | None = None
+    data_agendamento: str | None = None
+    hora_agendamento: str | None = None
     observacoes: str | None = None
+    tipo_atendimento: str | None = None
+    
+    # Sistema B
+    local_id: str | int | None = None
+    inicio: str | None = None
+    tipo: str | None = None
+    modalidade: str | None = None
+    
+    status: str | None = Field(None, description="agendado, pending, etc")
 
 
 # =====================================================================
@@ -79,17 +109,6 @@ async def criar_paciente(
 
     payload = p.model_dump(exclude_none=True)
 
-    if x_sistema_destino == "sistema_a":
-        # Sistema A usa 'cidade' e 'logradouro' no Supabase
-        if "municipio" in payload:
-            payload["cidade"] = payload.pop("municipio")
-        if "endereco" in payload:
-            payload["logradouro"] = payload.pop("endereco")
-        
-        # nome_mae e email existem no Supabase do Sistema A, então podemos mantê-los.
-        # No entanto, se o payload contiver campos extras (como None que não foram excluidos, 
-        # embora tenhamos usado exclude_none=True), eles estariam seguros.
-
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
         criado = await cliente.criar_paciente(payload)
@@ -113,15 +132,6 @@ async def criar_profissional(
     
     payload = p.model_dump(exclude_none=True)
 
-    if x_sistema_destino == "sistema_a":
-        # Sistema A não salva email
-        payload.pop("email", None)
-    elif x_sistema_destino == "sistema_b":
-        if not p.crm_uf:
-            raise HTTPException(status_code=422, detail={"erros": ["Sistema B requer crm_uf (sigla da UF, 2 letras)."]})
-        # Sistema B não salva tipo_atendimento
-        payload.pop("tipo_atendimento", None)
-
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
         criado = await cliente.criar_profissional(payload)
@@ -144,13 +154,6 @@ async def criar_agendamento(
         _destino_invalido()
 
     payload = a.model_dump(exclude_none=True)
-
-    if x_sistema_destino == "sistema_a":
-        payload["data_agendamento"] = payload.pop("data")
-        payload["hora_agendamento"] = payload.pop("hora")
-        payload.pop("modalidade", None)
-    elif x_sistema_destino == "sistema_b":
-        payload["inicio"] = f"{payload.pop('data')}T{payload.pop('hora')}:00"
 
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
