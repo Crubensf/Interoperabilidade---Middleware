@@ -78,12 +78,17 @@ async def criar_paciente(
         _destino_invalido()
 
     payload = p.model_dump(exclude_none=True)
-    
+
     if x_sistema_destino == "sistema_a":
-        payload.pop("email", None)
-        payload.pop("municipio", None)
-        payload.pop("endereco", None)
-        payload.pop("nome_mae", None)
+        # Sistema A usa 'cidade' e 'logradouro' no Supabase
+        if "municipio" in payload:
+            payload["cidade"] = payload.pop("municipio")
+        if "endereco" in payload:
+            payload["logradouro"] = payload.pop("endereco")
+        
+        # nome_mae e email existem no Supabase do Sistema A, então podemos mantê-los.
+        # No entanto, se o payload contiver campos extras (como None que não foram excluidos, 
+        # embora tenhamos usado exclude_none=True), eles estariam seguros.
 
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
