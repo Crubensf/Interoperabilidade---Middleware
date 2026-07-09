@@ -20,9 +20,21 @@ router = APIRouter(
 
 @router.post("", response_model=ProfissionalOut, status_code=status.HTTP_201_CREATED)
 def criar(payload: ProfissionalCreate, db: Session = Depends(get_db)):
-    esp = db.get(Especialidade, payload.especialidade_id)
+    esp = None
+    if payload.especialidade_id is not None:
+        esp = db.get(Especialidade, payload.especialidade_id)
+    elif payload.especialidade:
+        esp = db.scalar(select(Especialidade).where(Especialidade.nome == payload.especialidade.strip()))
+        if not esp:
+            esp = Especialidade(nome=payload.especialidade.strip())
+            db.add(esp)
+            db.flush()
+            
     if not esp:
-        raise HTTPException(status_code=404, detail="Especialidade não encontrada.")
+        raise HTTPException(status_code=404, detail="Especialidade não encontrada e não informada no payload.")
+
+    data = payload.model_dump(exclude={"especialidade"})
+    data["especialidade_id"] = esp.id
 
     if payload.crm and payload.crm_uf:
         exists = db.scalar(
@@ -37,7 +49,7 @@ def criar(payload: ProfissionalCreate, db: Session = Depends(get_db)):
                 detail="Já existe profissional com este CRM/UF.",
             )
 
-    obj = Profissional(**payload.model_dump())
+    obj = Profissional(**data)
     db.add(obj)
     db.flush()
 

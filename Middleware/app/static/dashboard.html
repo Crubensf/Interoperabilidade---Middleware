@@ -60,6 +60,8 @@
     <div class="sidebar-group">Operações</div>
     <nav class="stagger">
       <button class="nav-btn" style="--i:0" data-tab="criar"><i data-lucide="user-plus" class="icon"></i> Criar paciente</button>
+      <button class="nav-btn" style="--i:1" data-tab="criar-profissional"><i data-lucide="stethoscope" class="icon"></i> Criar profissional</button>
+      <button class="nav-btn" style="--i:2" data-tab="criar-agendamento"><i data-lucide="calendar-plus" class="icon"></i> Criar agendamento</button>
     </nav>
 
     <div class="sidebar-footer">
@@ -412,6 +414,9 @@
             <div class="field"><label>Telefone</label><input name="telefone" placeholder="+55 (11) 9 8472-1928" /></div>
             <div class="field"><label>E-mail</label><input name="email" type="email" placeholder="aline@example.com" /></div>
             <div class="field"><label>Data de nascimento</label><input name="data_nascimento" type="date" /></div>
+            <div class="field"><label>Município</label><input name="municipio" placeholder="São Paulo" /></div>
+            <div class="field"><label>Endereço</label><input name="endereco" placeholder="Rua das Flores, 123" /></div>
+            <div class="field"><label>Nome da Mãe</label><input name="nome_mae" placeholder="Maria da Silva" /></div>
 
             <div class="field"><label>Sistema destino *</label>
               <select name="destino" required>
@@ -425,6 +430,81 @@
             <span class="text-xs muted">CNS ou CPF é necessário para futura de-duplicação.</span>
           </div>
           <pre id="criar-resultado" class="bundle-view mt-4" style="max-height:280px"></pre>
+        </form>
+      </section>
+
+      <!-- ============ CRIAR PROFISSIONAL ============ -->
+      <section data-section="criar-profissional" class="section hidden">
+        <form id="form-criar-profissional" class="panel" style="max-width:680px">
+          <div class="flex-between mb-4">
+            <div>
+              <div class="chart-title">Cadastrar novo profissional</div>
+              <div class="text-xs muted mt-2">Escreve direto em A ou B via FHIR.</div>
+            </div>
+            <span class="badge">POST /profissionais</span>
+          </div>
+          <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
+            <div class="field"><label>Nome *</label><input name="nome" required placeholder="ex.: Dr. Renato Gomes" /></div>
+            <div class="field"><label>Especialidade</label><input name="especialidade" placeholder="Cardiologia" /></div>
+            <div class="field"><label>CRM *</label><input name="crm" required placeholder="12345" /></div>
+            <div class="field"><label>UF do CRM</label><input name="crm_uf" placeholder="SP" maxlength="2" /></div>
+            <div class="field"><label>Telefone</label><input name="telefone" placeholder="11999999999" /></div>
+            <div class="field"><label>E-mail</label><input name="email" type="email" placeholder="renato@example.com" /></div>
+            <div class="field"><label>Tipo de Atendimento</label>
+              <select name="tipo_atendimento"><option value="">—</option><option>Presencial</option><option>Telemedicina</option><option>Presencial e Telemedicina</option></select>
+            </div>
+            <div class="field"><label>Sistema destino *</label>
+              <select name="destino" required>
+                <option value="sistema_a">Sistema A — MediCare</option>
+                <option value="sistema_b">Sistema B — UBS</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-4" style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar profissional</button>
+          </div>
+          <pre id="criar-prof-resultado" class="bundle-view mt-4" style="max-height:280px"></pre>
+        </form>
+      </section>
+
+      <!-- ============ CRIAR AGENDAMENTO ============ -->
+      <section data-section="criar-agendamento" class="section hidden">
+        <form id="form-criar-agendamento" class="panel" style="max-width:680px">
+          <div class="flex-between mb-4">
+            <div>
+              <div class="chart-title">Cadastrar novo agendamento</div>
+              <div class="text-xs muted mt-2">Escreve direto em A ou B. Informe IDs consistentes.</div>
+            </div>
+            <span class="badge">POST /agendamentos</span>
+          </div>
+          <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
+            <div class="field"><label>ID Paciente *</label><input name="paciente_id" type="number" required placeholder="1" /></div>
+            <div class="field"><label>ID Profissional *</label><input name="profissional_id" type="number" required placeholder="1" /></div>
+            <div class="field"><label>ID Local *</label><input name="local_id" type="number" required placeholder="1" /></div>
+            <div class="field"><label>Data *</label><input name="data" type="date" required /></div>
+            <div class="field"><label>Hora *</label><input name="hora" type="time" required /></div>
+            <div class="field"><label>Status</label>
+              <select name="status">
+                <option value="agendado">Agendado</option>
+                <option value="pending">Pendente (pending)</option>
+                <option value="booked">Confirmado (booked)</option>
+              </select>
+            </div>
+            <div class="field span-2"><label>Observações</label><input name="observacoes" placeholder="Consulta de rotina..." /></div>
+            <div class="field"><label>Modalidade</label>
+              <select name="modalidade"><option value="PRESENCIAL">Presencial</option><option value="TELEMEDICINA">Telemedicina</option></select>
+            </div>
+            <div class="field"><label>Sistema destino *</label>
+              <select name="destino" required>
+                <option value="sistema_a">Sistema A — MediCare</option>
+                <option value="sistema_b">Sistema B — UBS</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-4" style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar agendamento</button>
+          </div>
+          <pre id="criar-ag-resultado" class="bundle-view mt-4" style="max-height:280px"></pre>
         </form>
       </section>
 

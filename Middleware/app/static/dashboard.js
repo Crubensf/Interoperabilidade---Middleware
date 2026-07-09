@@ -409,6 +409,57 @@ document.getElementById("form-criar").addEventListener("submit", async (ev) => {
 });
 
 // =====================================================================
+// Criar profissional
+// =====================================================================
+document.getElementById("form-criar-profissional").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const destino = data.destino; delete data.destino;
+  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+  const out = document.getElementById("criar-prof-resultado");
+  out.textContent = "Enviando…";
+  try {
+    const r = await fetch("/profissionais", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sistema-Destino": destino },
+      body: JSON.stringify(data),
+    });
+    const j = await r.json();
+    out.textContent = JSON.stringify(j, null, 2);
+  } catch (e) { out.textContent = "Erro: " + e.message; }
+});
+
+// =====================================================================
+// Criar agendamento
+// =====================================================================
+document.getElementById("form-criar-agendamento").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const destino = data.destino; delete data.destino;
+  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+  
+  // Converter os ids para número (se existirem na string original do formData)
+  if (data.paciente_id) data.paciente_id = parseInt(data.paciente_id, 10);
+  if (data.profissional_id) data.profissional_id = parseInt(data.profissional_id, 10);
+  if (data.local_id) data.local_id = parseInt(data.local_id, 10);
+
+  const out = document.getElementById("criar-ag-resultado");
+  out.textContent = "Enviando…";
+  try {
+    const r = await fetch("/agendamentos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Sistema-Destino": destino },
+      body: JSON.stringify(data),
+    });
+    const j = await r.json();
+    out.textContent = JSON.stringify(j, null, 2);
+  } catch (e) { out.textContent = "Erro: " + e.message; }
+});
+
+
+// =====================================================================
 // Analytics clínicos
 // =====================================================================
 const anlCharts = {};

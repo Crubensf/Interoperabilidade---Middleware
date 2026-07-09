@@ -18,7 +18,8 @@ def normalize_phone(digits: str) -> str:
 
 class ProfissionalBase(BaseModel):
     nome: str = Field(min_length=2, max_length=120)
-    especialidade_id: int
+    especialidade_id: int | None = None
+    especialidade: str | None = None
 
     crm: str | None = Field(default=None, max_length=20)
     crm_uf: str | None = Field(default=None, min_length=2, max_length=2)

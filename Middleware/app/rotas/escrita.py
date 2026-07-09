@@ -18,24 +18,29 @@ class PacienteEntrada(BaseModel):
     email: str | None = None
     data_nascimento: str | None = Field(None, description="YYYY-MM-DD")
     sexo: str | None = Field(None, pattern="^[MFOmfo]$|^(masculino|feminino|outro|male|female|other)$")
+    municipio: str | None = None
+    endereco: str | None = None
+    nome_mae: str | None = None
 
 
 class ProfissionalEntrada(BaseModel):
     nome: str = Field(..., min_length=2)
     crm: str = Field(..., min_length=1)
-    crm_uf: str | None = Field(None, min_length=2, max_length=2, description="UF — sistema A separa em coluna; sistema B exige")
+    crm_uf: str | None = Field(None, min_length=2, max_length=2)
     especialidade: str | None = None
     telefone: str | None = None
     email: str | None = None
+    tipo_atendimento: str | None = None
 
 
 class AgendamentoEntrada(BaseModel):
-    paciente_id: str | int
-    profissional_id: str | int
-    data_agendamento: str | None = Field(None, description="YYYY-MM-DD (sistema A)")
-    hora_agendamento: str | None = Field(None, description="HH:MM (sistema A)")
-    inicio: str | None = Field(None, description="ISO datetime (sistema B)")
-    status: str | None = Field(None, description="agendado/booked/pending…")
+    paciente_id: int
+    profissional_id: int
+    local_id: int
+    data: str = Field(..., description="YYYY-MM-DD")
+    hora: str = Field(..., description="HH:MM")
+    status: str | None = Field(None, description="agendado, pending, etc")
+    modalidade: str | None = None
     observacoes: str | None = None
 
 
@@ -93,11 +98,17 @@ async def criar_profissional(
 ):
     if x_sistema_destino not in DESTINOS:
         _destino_invalido()
+    
     payload = p.model_dump(exclude_none=True)
 
-    # Sistema B exige crm_uf; aviso amigável
-    if x_sistema_destino == "sistema_b" and not p.crm_uf:
-        raise HTTPException(status_code=422, detail={"erros": ["Sistema B requer crm_uf (sigla da UF, 2 letras)."]})
+    if x_sistema_destino == "sistema_a":
+        # Sistema A não salva email
+        payload.pop("email", None)
+    elif x_sistema_destino == "sistema_b":
+        if not p.crm_uf:
+            raise HTTPException(status_code=422, detail={"erros": ["Sistema B requer crm_uf (sigla da UF, 2 letras)."]})
+        # Sistema B não salva tipo_atendimento
+        payload.pop("tipo_atendimento", None)
 
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
@@ -120,13 +131,15 @@ async def criar_agendamento(
     if x_sistema_destino not in DESTINOS:
         _destino_invalido()
 
-    # Sistema A usa data_agendamento+hora_agendamento; B usa inicio (ISO)
-    if x_sistema_destino == "sistema_a" and not (a.data_agendamento and a.hora_agendamento):
-        raise HTTPException(status_code=422, detail={"erros": ["Sistema A requer data_agendamento e hora_agendamento."]})
-    if x_sistema_destino == "sistema_b" and not a.inicio:
-        raise HTTPException(status_code=422, detail={"erros": ["Sistema B requer 'inicio' (ISO datetime)."]})
-
     payload = a.model_dump(exclude_none=True)
+
+    if x_sistema_destino == "sistema_a":
+        payload["data_agendamento"] = payload.pop("data")
+        payload["hora_agendamento"] = payload.pop("hora")
+        payload.pop("modalidade", None)
+    elif x_sistema_destino == "sistema_b":
+        payload["inicio"] = f"{payload.pop('data')}T{payload.pop('hora')}:00"
+
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
         criado = await cliente.criar_agendamento(payload)
