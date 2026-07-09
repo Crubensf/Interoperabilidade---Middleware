@@ -78,6 +78,13 @@ async def criar_paciente(
         _destino_invalido()
 
     payload = p.model_dump(exclude_none=True)
+    
+    if x_sistema_destino == "sistema_a":
+        payload.pop("email", None)
+        payload.pop("municipio", None)
+        payload.pop("endereco", None)
+        payload.pop("nome_mae", None)
+
     try:
         cliente = sistema_a_client if x_sistema_destino == "sistema_a" else sistema_b_client
         criado = await cliente.criar_paciente(payload)
