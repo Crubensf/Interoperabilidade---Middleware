@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Iterable
 
 
@@ -113,6 +114,24 @@ def _tipo_por_ref(ref: str, lookup: dict[str, str] | None) -> str | None:
     return None
 
 
+def _parse_iso(val: str | None) -> datetime | None:
+    if not val or not isinstance(val, str):
+        return None
+    try:
+        return datetime.fromisoformat(val.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _status_efetivo_recurso(resource: dict) -> str | None:
+    status = resource.get("status")
+    if status and status.lower() in {"booked", "pending", "proposed"}:
+        dt = _parse_iso(resource.get("start"))
+        if dt and dt < datetime.now(timezone.utc):
+            return "noshow"
+    return status
+
+
 def resumir_agendamento(resource: dict, lookup: dict[str, str] | None = None) -> dict:
     """Resumo legível de Appointment.
 
@@ -139,7 +158,7 @@ def resumir_agendamento(resource: dict, lookup: dict[str, str] | None = None) ->
     return {
         "id": resource.get("id"),
         "origem": _origem(resource),
-        "status": resource.get("status"),
+        "status": _status_efetivo_recurso(resource),
         "inicio": resource.get("start"),
         "fim": resource.get("end"),
         "tipo": appt_type.get("text") or (appt_type.get("coding") or [{}])[0].get("display"),
@@ -265,8 +284,10 @@ def filtrar_appointment(
     saida = []
     for e in entries:
         r = e.get("resource") or {}
-        if status and (r.get("status") or "").lower() != status.lower():
-            continue
+        if status:
+            r_status = _status_efetivo_recurso(r)
+            if (r_status or "").lower() != status.lower():
+                continue
         inicio = r.get("start") or ""
         if date_ge and inicio < date_ge:
             continue

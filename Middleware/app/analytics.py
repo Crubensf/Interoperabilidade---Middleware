@@ -14,6 +14,7 @@ from typing import Iterable
 _STATUS_REALIZADO = {"fulfilled", "arrived", "checked-in"}
 _STATUS_CANCELADO = {"cancelled", "entered-in-error"}
 _STATUS_NOSHOW = {"noshow"}
+_STATUS_PENDENTE = {"booked", "pending", "proposed"}
 
 
 # 0 = segunda-feira (ISO). Mantemos rótulos curtos pro chart.
@@ -42,12 +43,23 @@ def _pct(numer: int, denom: int) -> float:
     return round((numer / denom) * 100, 1) if denom else 0.0
 
 
+def _obter_status_efetivo(ag: dict, agora: datetime) -> str:
+    """Infere 'noshow' se a consulta já passou e continua pendente."""
+    status = (ag.get("status") or "indefinido").lower()
+    if status in _STATUS_PENDENTE:
+        dt_inicio = _parse_inicio(ag.get("inicio"))
+        if dt_inicio and dt_inicio < agora:
+            return "noshow"
+    return status
+
+
 def distribuicao_por_status(agendamentos: Iterable[dict]) -> dict:
     counts: Counter[str] = Counter()
     total = 0
+    agora = datetime.now(timezone.utc)
     for ag in agendamentos:
         total += 1
-        status = (ag.get("status") or "indefinido").lower()
+        status = _obter_status_efetivo(ag, agora)
         counts[status] += 1
 
     realizados = sum(counts[s] for s in _STATUS_REALIZADO)
@@ -71,10 +83,12 @@ def distribuicao_por_status(agendamentos: Iterable[dict]) -> dict:
 def _top_por_chave(agendamentos: Iterable[dict], chave: str, limite: int) -> list[dict]:
     contagem: Counter[str] = Counter()
     por_status: dict[str, Counter[str]] = defaultdict(Counter)
+    agora = datetime.now(timezone.utc)
     for ag in agendamentos:
         rotulo = _normalizar_label(ag.get(chave))
         contagem[rotulo] += 1
-        por_status[rotulo][(ag.get("status") or "indefinido").lower()] += 1
+        status = _obter_status_efetivo(ag, agora)
+        por_status[rotulo][status] += 1
 
     top = contagem.most_common(limite)
     return [
