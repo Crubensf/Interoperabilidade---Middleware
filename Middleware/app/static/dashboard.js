@@ -473,6 +473,7 @@ document.getElementById("form-criar-agendamento").addEventListener("submit", asy
   if (data.paciente_id) data.paciente_id = parseInt(data.paciente_id, 10);
   if (data.profissional_id) data.profissional_id = parseInt(data.profissional_id, 10);
   if (data.local_id) data.local_id = parseInt(data.local_id, 10);
+  if (data.especialidade_id) data.especialidade_id = parseInt(data.especialidade_id, 10);
 
   const out = document.getElementById("criar-ag-resultado");
   out.textContent = "Enviando…";

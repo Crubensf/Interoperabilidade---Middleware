@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.agregador import invalidar_cache_bundles
+from app.mpi.repository import upsert_paciente, upsert_profissional
 from app.auth import require_api_key
 from app.clients.sistema_a import sistema_a_client
 from app.clients.sistema_b import sistema_b_client
@@ -57,6 +58,7 @@ class ProfissionalEntrada(BaseModel):
 class AgendamentoEntrada(BaseModel):
     paciente_id: str | int
     profissional_id: str | int
+    especialidade_id: int | None = None
     
     # Sistema A
     local_atendimento: str | None = None
@@ -117,6 +119,16 @@ async def criar_paciente(
     except Exception as e:
         _erro_externo(x_sistema_destino, e)
 
+    try:
+        cns = payload.get("cartao_sus") or (criado.get("cartao_sus") if isinstance(criado, dict) else None)
+        cpf = payload.get("cpf") or (criado.get("cpf") if isinstance(criado, dict) else None)
+        nome = payload.get("nome") or (criado.get("nome") if isinstance(criado, dict) else None)
+        sid = str(criado.get("id", "")) if isinstance(criado, dict) else ""
+        if sid and (cns or cpf):
+            upsert_paciente(cns=cns, cpf=cpf, nome=nome, sistema=x_sistema_destino, sistema_id=sid)
+    except Exception:
+        pass
+
     invalidar_cache_bundles(x_sistema_destino)  # type: ignore[arg-type]
     return {"destino": x_sistema_destino, "recurso": criado}
 
@@ -139,6 +151,15 @@ async def criar_profissional(
         raise
     except Exception as e:
         _erro_externo(x_sistema_destino, e)
+
+    try:
+        crm = payload.get("crm") or (criado.get("crm") if isinstance(criado, dict) else None)
+        nome = payload.get("nome") or (criado.get("nome") if isinstance(criado, dict) else None)
+        sid = str(criado.get("id", "")) if isinstance(criado, dict) else ""
+        if crm and sid:
+            upsert_profissional(crm=crm, nome=nome, sistema=x_sistema_destino, sistema_id=sid)
+    except Exception:
+        pass
 
     invalidar_cache_bundles(x_sistema_destino)  # type: ignore[arg-type]
     return {"destino": x_sistema_destino, "recurso": criado}
