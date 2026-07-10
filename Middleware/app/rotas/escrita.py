@@ -86,7 +86,21 @@ def _destino_invalido():
     raise HTTPException(status_code=400, detail="X-Sistema-Destino deve ser sistema_a ou sistema_b")
 
 
+import httpx
+
 def _erro_externo(destino: str, exc: Exception):
+    if isinstance(exc, httpx.HTTPStatusError):
+        try:
+            dados = exc.response.json()
+            detalhe = dados.get("detail", str(exc))
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail={"mensagem": f"Falha na validação do {destino}", "erros": detalhe}
+            )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
     raise HTTPException(status_code=502, detail=f"Falha ao escrever em {destino}: {exc}")
 
 
