@@ -418,6 +418,8 @@ document.querySelectorAll(".destino-select").forEach(sel => {
       form.querySelectorAll(".only-sys-a").forEach(el => el.classList.add("hidden"));
     }
   });
+  // Dispara o evento ao carregar a página para ocultar os campos duplicados
+  sel.dispatchEvent(new Event("change"));
 });
 
 function cleanFormData(form) {
