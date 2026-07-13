@@ -404,6 +404,11 @@
             </div>
             <span class="badge">POST /pacientes</span>
           </div>
+          <div class="sys-tabs">
+            <button type="button" class="sys-tab active" data-target-sys="sistema_b">Sistema B — UBS</button>
+            <button type="button" class="sys-tab" data-target-sys="sistema_a">Sistema A — MediCare</button>
+          </div>
+          <input type="hidden" name="destino" class="destino-input" value="sistema_b" />
           <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
             <div class="field"><label>Nome *</label><input name="nome" required placeholder="ex.: Aline Tavares" /></div>
             <div class="field"><label>Sexo</label>
@@ -429,12 +434,7 @@
             <div class="field only-sys-b"><label>Município</label><input name="municipio" placeholder="São Paulo" /></div>
             <div class="field only-sys-b"><label>Endereço</label><input name="endereco" placeholder="Rua X, 123" /></div>
 
-            <div class="field"><label>Sistema destino *</label>
-              <select name="destino" required class="destino-select">
-                <option value="sistema_b" selected>Sistema B — UBS</option>
-                <option value="sistema_a">Sistema A — MediCare</option>
-              </select>
-            </div>
+
           </div>
           <div class="mt-4" style="display:flex;align-items:center;gap:12px">
             <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar paciente</button>
@@ -454,6 +454,11 @@
             </div>
             <span class="badge">POST /profissionais</span>
           </div>
+          <div class="sys-tabs">
+            <button type="button" class="sys-tab active" data-target-sys="sistema_b">Sistema B — UBS</button>
+            <button type="button" class="sys-tab" data-target-sys="sistema_a">Sistema A — MediCare</button>
+          </div>
+          <input type="hidden" name="destino" class="destino-input" value="sistema_b" />
           <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
             <div class="field"><label>Nome *</label><input name="nome" required placeholder="ex.: Dr. Renato Gomes" /></div>
             <div class="field"><label>Especialidade</label><input name="especialidade" placeholder="Cardiologia" /></div>
@@ -470,12 +475,7 @@
             <div class="field"><label>Tipo de Atendimento</label>
               <select name="tipo_atendimento"><option value="">—</option><option>Presencial</option><option>Telemedicina</option><option>Presencial e Telemedicina</option></select>
             </div>
-            <div class="field"><label>Sistema destino *</label>
-              <select name="destino" required class="destino-select">
-                <option value="sistema_b" selected>Sistema B — UBS</option>
-                <option value="sistema_a">Sistema A — MediCare</option>
-              </select>
-            </div>
+
           </div>
           <div class="mt-4" style="display:flex;align-items:center;gap:12px">
             <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar profissional</button>
@@ -494,6 +494,11 @@
             </div>
             <span class="badge">POST /agendamentos</span>
           </div>
+          <div class="sys-tabs">
+            <button type="button" class="sys-tab active" data-target-sys="sistema_b">Sistema B — UBS</button>
+            <button type="button" class="sys-tab" data-target-sys="sistema_a">Sistema A — MediCare</button>
+          </div>
+          <input type="hidden" name="destino" class="destino-input" value="sistema_b" />
           <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
             <div class="field"><label>ID Paciente *</label><input name="paciente_id" type="number" required placeholder="1" /></div>
             <div class="field"><label>ID Profissional *</label><input name="profissional_id" type="number" required placeholder="1" /></div>
@@ -520,12 +525,7 @@
             </div>
             <div class="field span-2"><label>Observações</label><input name="observacoes" placeholder="Consulta de rotina..." /></div>
             
-            <div class="field"><label>Sistema destino *</label>
-              <select name="destino" required class="destino-select">
-                <option value="sistema_b" selected>Sistema B — UBS</option>
-                <option value="sistema_a">Sistema A — MediCare</option>
-              </select>
-            </div>
+
           </div>
           <div class="mt-4" style="display:flex;align-items:center;gap:12px">
             <button type="submit" class="btn btn-vital"><i data-lucide="check" class="icon"></i> Criar agendamento</button>
@@ -566,7 +566,7 @@
 <!-- ============ TOAST CONTAINER ============ -->
 <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-<script src="/static/dashboard.js?v=5"></script>
+<script src="/static/dashboard.js?v=6"></script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

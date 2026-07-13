@@ -405,21 +405,32 @@ document.getElementById("bundle-copy").addEventListener("click", () => {
 // =====================================================================
 // Dinâmica de Formulários
 // =====================================================================
-document.querySelectorAll(".destino-select").forEach(sel => {
-  sel.addEventListener("change", (e) => {
-    const destino = e.target.value;
-    const form = e.target.closest("form");
-    
-    if (destino === "sistema_a") {
-      form.querySelectorAll(".only-sys-a").forEach(el => el.classList.remove("hidden"));
-      form.querySelectorAll(".only-sys-b").forEach(el => el.classList.add("hidden"));
-    } else {
-      form.querySelectorAll(".only-sys-b").forEach(el => el.classList.remove("hidden"));
-      form.querySelectorAll(".only-sys-a").forEach(el => el.classList.add("hidden"));
-    }
+document.querySelectorAll(".sys-tabs").forEach(tabsContainer => {
+  const tabs = tabsContainer.querySelectorAll(".sys-tab");
+  const form = tabsContainer.closest("form");
+  const input = form.querySelector(".destino-input");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      
+      const destino = tab.getAttribute("data-target-sys");
+      input.value = destino;
+
+      if (destino === "sistema_a") {
+        form.querySelectorAll(".only-sys-a").forEach(el => el.classList.remove("hidden"));
+        form.querySelectorAll(".only-sys-b").forEach(el => el.classList.add("hidden"));
+      } else {
+        form.querySelectorAll(".only-sys-b").forEach(el => el.classList.remove("hidden"));
+        form.querySelectorAll(".only-sys-a").forEach(el => el.classList.add("hidden"));
+      }
+    });
   });
-  // Dispara o evento ao carregar a página para ocultar os campos duplicados
-  sel.dispatchEvent(new Event("change"));
+
+  // Dispara o evento de clique na aba ativa ao carregar a página
+  const activeTab = tabsContainer.querySelector(".sys-tab.active");
+  if (activeTab) activeTab.click();
 });
 
 function cleanFormData(form) {

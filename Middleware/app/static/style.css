@@ -998,3 +998,36 @@ tbody tr:last-child td { border-bottom: 0; }
   .diff-table .diff-cell { border-right: 0; }
   .modal { max-width: 100%; }
 }
+}
+
+.sys-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  width: fit-content;
+  margin-bottom: 24px;
+}
+.sys-tab {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sys-tab:hover {
+  color: var(--text);
+}
+.sys-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+}
