@@ -179,6 +179,7 @@ async function loadPacientes() {
       ? `<button class="name-link" data-detalhe-identifier="${ident}">${p.nome || "—"}</button>`
       : `<button class="name-link" data-detalhe-nome="${(p.nome || "").replace(/"/g, "&quot;")}">${p.nome || "—"}</button>`;
     return [
+      fmtCode(p.id),
       badgeOrigem(p.origem),
       nomeBtn,
       fmtCode(p.cpf),
@@ -189,7 +190,7 @@ async function loadPacientes() {
     ];
   });
   document.getElementById("pac-table").innerHTML = table(
-    ["Origem", "Nome", "CPF", "CNS", "Sexo", "Nasc.", "Telefone"], rows
+    ["ID", "Origem", "Nome", "CPF", "CNS", "Sexo", "Nasc.", "Telefone"], rows
   );
   attachDetalheHandlers(document.getElementById("pac-table"));
   setUpdated();
@@ -210,17 +211,25 @@ async function loadProf() {
   const id = document.getElementById("prof-id").value; if (id) q.set("identifier", id);
   const data = await api(`/profissionais?${q}`);
   document.getElementById("prof-total").textContent = `${data.total} resultado(s)`;
-  const rows = data.items.map(p => [
-    badgeOrigem(p.origem),
-    `<strong style="font-weight:600;letter-spacing:-0.01em">${p.nome || "—"}</strong>`,
-    fmtCode(p.crm),
-    fmt(p.especialidade),
-    fmt(p.telefone),
-    fmt(p.email),
-  ]);
+  const rows = data.items.map(p => {
+    const ident = p.crm || "";
+    const nomeBtn = ident
+      ? `<button class="name-link" data-detalhe-prof-identifier="${ident}">${p.nome || "—"}</button>`
+      : `<button class="name-link" data-detalhe-prof-nome="${(p.nome || "").replace(/"/g, "&quot;")}">${p.nome || "—"}</button>`;
+    return [
+      fmtCode(p.id),
+      badgeOrigem(p.origem),
+      nomeBtn,
+      fmtCode(p.crm),
+      fmt(p.especialidade),
+      fmt(p.telefone),
+      fmt(p.email),
+    ];
+  });
   document.getElementById("prof-table").innerHTML = table(
-    ["Origem", "Nome", "CRM", "Especialidade", "Telefone", "E-mail"], rows
+    ["ID", "Origem", "Nome", "CRM", "Especialidade", "Telefone", "E-mail"], rows
   );
+  attachDetalheHandlers(document.getElementById("prof-table"));
   setUpdated();
   reinitIcons();
 }
@@ -239,18 +248,25 @@ async function loadAg() {
   const le = document.getElementById("ag-le").value; if (le) q.set("date_le", le);
   const data = await api(`/agendamentos?${q}`);
   document.getElementById("ag-total").textContent = `${data.total} resultado(s)`;
-  const rows = data.items.map(a => [
-    badgeOrigem(a.origem),
-    badgeStatus(a.status),
-    a.inicio ? `<span class="mono">${a.inicio.replace("T", " ").slice(0, 16)}</span>` : fmt(null),
-    fmt(a.tipo),
-    `<strong style="font-weight:600;letter-spacing:-0.01em">${a.paciente || "—"}</strong>`,
-    fmt(a.profissional),
-    fmt(a.local),
-  ]);
+  const rows = data.items.map(a => {
+    const idBtn = a.id
+      ? `<button class="name-link" data-detalhe-ag-id="${a.id}" data-detalhe-ag-origem="${a.origem}">${a.id}</button>`
+      : `<span class="empty">sem-id</span>`;
+    return [
+      idBtn,
+      badgeOrigem(a.origem),
+      badgeStatus(a.status),
+      a.inicio ? `<span class="mono">${a.inicio.replace("T", " ").slice(0, 16)}</span>` : fmt(null),
+      fmt(a.tipo),
+      `<strong style="font-weight:600;letter-spacing:-0.01em">${a.paciente || "—"}</strong>`,
+      fmt(a.profissional),
+      fmt(a.local),
+    ];
+  });
   document.getElementById("ag-table").innerHTML = table(
-    ["Origem", "Status", "Início", "Tipo", "Paciente", "Profissional", "Local"], rows
+    ["ID", "Origem", "Status", "Início", "Tipo", "Paciente", "Profissional", "Local"], rows
   );
+  attachDetalheHandlers(document.getElementById("ag-table"));
   setUpdated();
   reinitIcons();
 }
@@ -744,6 +760,20 @@ function attachDetalheHandlers(container) {
       abrirDetalhePaciente({ identifier: ident, nome });
     });
   });
+  container.querySelectorAll("[data-detalhe-prof-identifier], [data-detalhe-prof-nome]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ident = btn.getAttribute("data-detalhe-prof-identifier");
+      const nome = btn.getAttribute("data-detalhe-prof-nome");
+      abrirDetalheProfissional({ identifier: ident, nome });
+    });
+  });
+  container.querySelectorAll("[data-detalhe-ag-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-detalhe-ag-id");
+      const origem = btn.getAttribute("data-detalhe-ag-origem");
+      abrirDetalheAgendamento({ id, origem });
+    });
+  });
 }
 
 async function abrirDetalhePaciente({ identifier, nome }) {
@@ -767,18 +797,86 @@ async function abrirDetalhePaciente({ identifier, nome }) {
     return;
   }
 
-  renderDetalhe(data);
+  renderDetalhe(data, "Patient");
 }
 
-function renderDetalhe(data) {
+async function abrirDetalheProfissional({ identifier, nome }) {
+  const q = new URLSearchParams();
+  if (identifier) q.set("identifier", identifier);
+  else if (nome) q.set("nome", nome);
+
+  document.getElementById("modal-title").textContent = "Carregando…";
+  document.getElementById("modal-sub").innerHTML = "";
+  document.getElementById("modal-body").innerHTML = `<div class="empty"><i data-lucide="loader" class="icon"></i><div>Buscando em A e B…</div></div>`;
+  openModal();
+  reinitIcons();
+
+  let data;
+  try {
+    data = await api(`/profissionais/detalhe?${q}`);
+  } catch (e) {
+    document.getElementById("modal-title").textContent = "Erro";
+    document.getElementById("modal-body").innerHTML = `<div class="alert alert-err"><div class="alert-title"><i data-lucide="x-circle" class="icon"></i> Falha ao carregar</div><div class="alert-row">${e.message}</div></div>`;
+    reinitIcons();
+    return;
+  }
+  renderDetalhe(data, "Practitioner");
+}
+
+async function abrirDetalheAgendamento({ id, origem }) {
+  const q = new URLSearchParams();
+  q.set("id", id);
+  q.set("origem", origem);
+
+  document.getElementById("modal-title").textContent = "Carregando…";
+  document.getElementById("modal-sub").innerHTML = "";
+  document.getElementById("modal-body").innerHTML = `<div class="empty"><i data-lucide="loader" class="icon"></i><div>Buscando agendamento…</div></div>`;
+  openModal();
+  reinitIcons();
+
+  let data;
+  try {
+    data = await api(`/agendamentos/detalhe?${q}`);
+  } catch (e) {
+    document.getElementById("modal-title").textContent = "Erro";
+    document.getElementById("modal-body").innerHTML = `<div class="alert alert-err"><div class="alert-title"><i data-lucide="x-circle" class="icon"></i> Falha ao carregar</div><div class="alert-row">${e.message}</div></div>`;
+    reinitIcons();
+    return;
+  }
+  renderDetalhe(data, "Appointment");
+}
+
+function renderDetalhe(data, tipo) {
   const v0 = data.versoes[0]?.resumo || {};
   const origensBadges = data.versoes.map(v => badgeOrigem(v.origem)).join(" ");
-  document.getElementById("modal-title").textContent = v0.nome || "Paciente";
+  
+  let titulo = v0.nome || "Desconhecido";
+  if (tipo === "Appointment") titulo = v0.tipo || "Agendamento";
+  
+  document.getElementById("modal-title").textContent = titulo;
+  
+  let tags = "";
+  if (tipo === "Patient") {
+      tags = `
+        ${v0.cartao_sus ? `<span class="code">CNS · ${v0.cartao_sus}</span>` : ""}
+        ${v0.cpf ? `<span class="code">CPF · ${v0.cpf}</span>` : ""}
+      `;
+  } else if (tipo === "Practitioner") {
+      tags = `
+        ${v0.crm ? `<span class="code">CRM · ${v0.crm}</span>` : ""}
+        ${v0.especialidade ? `<span class="code">${v0.especialidade}</span>` : ""}
+      `;
+  } else if (tipo === "Appointment") {
+      tags = `
+        ${v0.status ? `<span class="code">Status · ${v0.status}</span>` : ""}
+        ${v0.inicio ? `<span class="code">${v0.inicio.replace("T", " ").slice(0, 16)}</span>` : ""}
+      `;
+  }
+
   document.getElementById("modal-sub").innerHTML = `
     ${origensBadges}
-    ${data.duplicado ? `<span class="badge badge-warn"><span class="dot"></span>duplicado</span>` : `<span class="badge">único</span>`}
-    ${v0.cartao_sus ? `<span class="code">CNS · ${v0.cartao_sus}</span>` : ""}
-    ${v0.cpf ? `<span class="code">CPF · ${v0.cpf}</span>` : ""}
+    ${data.duplicado ? `<span class="badge badge-warn"><span class="dot"></span>duplicado</span>` : (data.versoes.length > 0 && tipo !== "Appointment" ? `<span class="badge">único</span>` : "")}
+    ${tags}
   `;
 
   const body = document.getElementById("modal-body");
@@ -856,7 +954,7 @@ function renderDetalhe(data) {
   for (const v of data.versoes) {
     blocks.push(`
       <div class="modal-section">
-        <h3><i data-lucide="braces" class="icon"></i> FHIR Patient · ${v.origem.toUpperCase()}</h3>
+        <h3><i data-lucide="braces" class="icon"></i> FHIR ${tipo} · ${v.origem.toUpperCase()}</h3>
         <pre class="fhir-viewer">${JSON.stringify(v.fhir, null, 2)}</pre>
       </div>
     `);
