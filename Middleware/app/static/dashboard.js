@@ -476,10 +476,16 @@ document.getElementById("form-criar-profissional").addEventListener("submit", as
   const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
   
-  // O backend do Sistema A espera o campo "crm", mas o frontend chamava de "conselho"
-  if (destino === "sistema_a" && data.conselho) {
-    data.crm = data.conselho;
-    delete data.conselho;
+  // O backend do Sistema A espera o campo "crm" e "crm_uf", mas o frontend chamava de "conselho" e "registro_uf"
+  if (destino === "sistema_a") {
+    if (data.conselho) {
+      data.crm = data.conselho;
+      delete data.conselho;
+    }
+    if (data.registro_uf) {
+      data.crm_uf = data.registro_uf;
+      delete data.registro_uf;
+    }
   }
   
   const out = document.getElementById("criar-prof-resultado");
