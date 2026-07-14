@@ -500,8 +500,8 @@
           </div>
           <input type="hidden" name="destino" class="destino-input" value="sistema_b" />
           <div class="bento" style="grid-template-columns: repeat(2,1fr);gap:14px">
-            <div class="field"><label>ID Paciente *</label><input name="paciente_id" type="number" required placeholder="1" /></div>
-            <div class="field"><label>ID Profissional *</label><input name="profissional_id" type="number" required placeholder="1" /></div>
+            <div class="field"><label>ID Paciente *</label><input name="paciente_id" type="text" required placeholder="1 (Sis B) ou UUID (Sis A)" /></div>
+            <div class="field"><label>ID Profissional *</label><input name="profissional_id" type="text" required placeholder="1 ou UUID" /></div>
             
             <div class="field only-sys-b"><label>ID Local *</label><input name="local_id" type="number" placeholder="1" /></div>
             <div class="field only-sys-b"><label>ID Especialidade *</label><input name="especialidade_id" type="number" placeholder="1" /></div>
@@ -566,7 +566,7 @@
 <!-- ============ TOAST CONTAINER ============ -->
 <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-<script src="/static/dashboard.js?v=7"></script>
+<script src="/static/dashboard.js?v=8"></script>
 <script>lucide.createIcons();</script>
 </body>
 </html>

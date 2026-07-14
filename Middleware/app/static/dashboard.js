@@ -510,11 +510,24 @@ document.getElementById("form-criar-agendamento").addEventListener("submit", asy
   const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
   
-  // Converter os ids para número (se existirem na string original do formData)
-  if (data.paciente_id) data.paciente_id = parseInt(data.paciente_id, 10);
-  if (data.profissional_id) data.profissional_id = parseInt(data.profissional_id, 10);
-  if (data.local_id) data.local_id = parseInt(data.local_id, 10);
-  if (data.especialidade_id) data.especialidade_id = parseInt(data.especialidade_id, 10);
+  if (destino === "sistema_b") {
+    // Sistema B usa Inteiros
+    if (data.paciente_id) data.paciente_id = parseInt(data.paciente_id, 10);
+    if (data.profissional_id) data.profissional_id = parseInt(data.profissional_id, 10);
+    if (data.local_id) data.local_id = parseInt(data.local_id, 10);
+    if (data.especialidade_id) data.especialidade_id = parseInt(data.especialidade_id, 10);
+    
+    // Sistema B usa status em português
+    const statusMap = {
+      "booked": "agendado",
+      "pending": "agendado",
+      "fulfilled": "atendido",
+      "cancelled": "cancelado"
+    };
+    if (data.status && statusMap[data.status]) {
+      data.status = statusMap[data.status];
+    }
+  }
 
   const out = document.getElementById("criar-ag-resultado");
   out.textContent = "Enviando…";
