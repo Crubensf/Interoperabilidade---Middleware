@@ -54,11 +54,14 @@ def _set_urn_references_in_appointment(appointment: dict, rest_to_urn: dict[str,
 
 def _build_entry(resource: dict, rest_reference: str, rest_to_urn: dict[str, str]) -> dict:
     urn = rest_to_urn.setdefault(rest_reference, _to_urn(rest_reference))
-    resource_with_urn_id = deepcopy(resource)
-    resource_with_urn_id["id"] = urn.replace("urn:uuid:", "", 1)
+    
+    # IMPORTANTE: Preservar o ID original do recurso para que o Middleware (e o Frontend)
+    # consigam exibir e usar os IDs numéricos reais do Sistema B.
+    # Anteriormente o ID original era sobrescrito com um UUID derivado do urn.
+    
     return {
         "fullUrl": urn,
-        "resource": resource_with_urn_id,
+        "resource": resource,
         "request": {
             "method": "POST",
             "url": resource["resourceType"],
