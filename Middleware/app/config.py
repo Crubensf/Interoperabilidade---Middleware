@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     SISTEMA_B_EMAIL: str = ""
     SISTEMA_B_SENHA: str = ""
 
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/middleware"
+    DATABASE_URL: str = "postgresql://postgres:123456@localhost:5432/middleware"
     MIDDLEWARE_PORT: int = 8080
     HTTP_TIMEOUT: float = 15.0
     CORS_ORIGINS: str = "http://localhost:8080,http://127.0.0.1:8080"

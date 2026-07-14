@@ -476,6 +476,12 @@ document.getElementById("form-criar-profissional").addEventListener("submit", as
   const data = cleanFormData(form);
   const destino = data.destino; delete data.destino;
   
+  // O backend do Sistema A espera o campo "crm", mas o frontend chamava de "conselho"
+  if (destino === "sistema_a" && data.conselho) {
+    data.crm = data.conselho;
+    delete data.conselho;
+  }
+  
   const out = document.getElementById("criar-prof-resultado");
   out.textContent = "Enviando…";
   try {

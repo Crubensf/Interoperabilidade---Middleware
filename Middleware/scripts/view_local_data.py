@@ -1,10 +1,10 @@
 import sys
 import os
 
-# Adiciona o diretório app ao path para poder importar as configurações do db
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
+# Adiciona o diretório do Middleware ao path para poder importar módulos de 'app'
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from db import conn
+from app.db import conn
 
 def ver_dados():
     try:
